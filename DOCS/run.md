@@ -1,4 +1,13 @@
-# start database
+Chill vibes - https://www.youtube.com/watch?v=8KO2p6gPuAk
+
+Open WebUI Docker - http://localhost:3000
+
+LangSmith - https://smith.langchain.com/
+
+
+# database
+
+generated endpoint docs - http://localhost:5101/docs#/
 
 ```sh
 # NOTE: initual setup ONLY
@@ -14,7 +23,7 @@ cd database
 uvicorn src.app:app --reload --port 5101
 ```
 
-# start langserver
+# langserver
 
 ```sh
 cd langserver
@@ -25,11 +34,11 @@ uvicorn src.app:app --reload --port 8513
 
 ```
 
-# start frontend
+# frontend
+
+Streamlit - http://localhost:8501
 
 ```sh
 cd admin_frontend
 streamlit run app.py
-
-# http://localhost:8501
 ```

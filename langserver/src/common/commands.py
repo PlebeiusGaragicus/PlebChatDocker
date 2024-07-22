@@ -18,6 +18,23 @@ USAGE = """
 /debug                    Get debug information
 """
 
+def hi(_):
+    return """
+#  🗣️🤖💬👀
+    
+>>> Hi there! 👋
+
+## I'm `PlebChat`
+
+```txt
+I'm just a simple chatbot agent
+```
+
+Type `/about` to learn more.
+
+
+"""
+
 
 
 ############################################################################
@@ -35,11 +52,15 @@ def version(_):
 def about(_):
     # Markdown text to explain this construct
     return """
-# Chatbot Agent
-
-Hi, I'm just some agent dude...
+I am LangGraph something something #TODO
+    
+Here's my [source code on GitHub](https://github.com/PlebeiusGaragicus/PlebChatDocker)
 
 Try `/usage` for a list of commands.
+
+npub: `xxxx#TODOxxxx`
+
+[ by PlebbyG 👨🏻‍💻 ]
 """
 
 
@@ -172,6 +193,7 @@ The URL you provided is: {first_arg}
 command_list = [
 ###################################
 # STANDARD COMMANDS FOR EVERY AGENT
+    [["hi"], hi, "Tell the bot to say hello to you."],
     [["version"], version, "Get the version of the agent"],
     [["info", "about"], about, "Get information about the agent"],
     [["usage", "help"], usage, "Get a list of commands"],

@@ -1,41 +1,49 @@
+import dotenv
+dotenv.load_dotenv()
+
+# import logging
+from src.logger import setup_logging, logger
+setup_logging()
+# import src.logger
+# logger = logging.getLogger(__name__)
+
 import os
-import logging
 from datetime import datetime
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG").upper()
+# LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG").upper()
 
-logging_config = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "standard": {
-            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        },
-    },
-    "handlers": {
-        "default": {
-            "level": LOG_LEVEL,
-            "formatter": "standard",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    "loggers": {
-        "": {
-            "handlers": ["default"],
-            "level": LOG_LEVEL,
-            "propagate": True,
-        },
-    }
-}
+# logging_config = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     "formatters": {
+#         "standard": {
+#             "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+#         },
+#     },
+#     "handlers": {
+#         "default": {
+#             "level": LOG_LEVEL,
+#             "formatter": "standard",
+#             "class": "logging.StreamHandler",
+#             "stream": "ext://sys.stdout",
+#         },
+#     },
+#     "loggers": {
+#         "": {
+#             "handlers": ["default"],
+#             "level": LOG_LEVEL,
+#             "propagate": True,
+#         },
+#     }
+# }
 
-import logging.config
+# import logging.config
 
-# Load the logging configuration
-logging.config.dictConfig(logging_config)
+# # Load the logging configuration
+# logging.config.dictConfig(logging_config)
 
-# Get the root logger
-logger = logging.getLogger(__name__)
+# # Get the root logger
+# logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Request, status
 from pydantic import BaseModel

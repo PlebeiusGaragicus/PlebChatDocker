@@ -1,43 +1,19 @@
 import json
+import requests
 from fastapi.responses import StreamingResponse
 
 from src.common.payment import UserNotRegistered
 
+from src.config import DEFAULT_INVOICE_AMOUNT
 
-
-# Markdown text to explain the commands available
-USAGE = """
-/version                  Get the version of the agent
-
-/info, /about             Get information about the agent
-
-/draw                     Get the graph of the agent
-
-/help, /usage             Get a list of commands
-
-/debug                    Get debug information
-"""
-
-def hi(_):
-    return """
-#  🗣️🤖💬👀
-    
->>> Hi there! 👋
-
-## I'm `PlebChat`
-
-```txt
-I'm just a simple chatbot agent
-```
-
-Type `/about` to learn more.
-
-
-"""
 
 
 
-############################################################################
+def hi(_):
+    from src.config import HI_TEXT
+    return HI_TEXT
+
+
 def version(_):
     """
     This is the docscring for the version command.
@@ -48,26 +24,13 @@ def version(_):
     return f"Version `{VERSION}`"
 
 
-############################################################################
 def about(_):
-    # Markdown text to explain this construct
-    return """
-I am LangGraph something something #TODO
-    
-Here's my [source code on GitHub](https://github.com/PlebeiusGaragicus/PlebChatDocker)
-
-Try `/usage` for a list of commands.
-
-npub: `xxxx#TODOxxxx`
-
-[ by PlebbyG 👨🏻‍💻 ]
-"""
+    #TODO
+    from src.config import ABOUT_TEXT
+    return ABOUT_TEXT
 
 
-############################################################################
 def usage(_):
-    # return f"```\n{USAGE}\n```"
-
     # use the commands list to generate the usage text
     usage_text = "```\n"
     for command_names, _, description in command_list:
@@ -76,39 +39,50 @@ def usage(_):
     return usage_text
 
 
-############################################################################
 def draw(_):
     from src.graph.graph import GRAPH_ASCII
     return f"```\n{GRAPH_ASCII}\n```"
 
-############################################################################
+
 def debug(request):
     return f"# body:\n```json\n{json.dumps(request.body, indent=4)}\n```"
 
+
+
 ############################################################################
-
-
-
 def balance(request):
     lud16 = request.body['user']['email']
     if not lud16:
         return "⚠️ No user LUD16 provided." #TODO: we need to log these errors.  This should never happen!!
     else:
         try:
-            from .payment import show_user_balance
-            return show_user_balance(lud16=lud16)
+            from .payment import get_user_balance
+            
+            bal = get_user_balance(lud16)
+
+            if bal is not None:
+                yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
+            else:
+                # TODO: log and track these errors!!!
+                return "Error: Unknown error"
+
         except UserNotRegistered as e:
             error_message = f"Hello new user!  You have no balance yet - type `/pay` to get started."
             return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 
-            
-
 
 def pay(request):
-# This command will:
-# - check if the user has any pending invoices.
-# - if so, it will check if the invoice has been paid
-# - if not, it will generate a new invoice for the user to pay.
+
+    try:
+        split = request.user_message.split(" ")
+        first_arg = split[1] if len(split) > 1 else None
+        if first_arg:
+            requested_invoice_amount = int(first_arg)
+        else:
+            requested_invoice_amount = DEFAULT_INVOICE_AMOUNT
+
+    except Exception as e:
+        return f"I think your request was formatted incorrectly\n{e}"
 
     lud16 = request.body['user']['email']
     if not lud16:
@@ -117,15 +91,15 @@ def pay(request):
         #TODO: the user can specify an amount to invoice??
 
         from .payment import get_invoice
-        invoice = get_invoice(lud16=lud16)
-
-        ln_link = f"lightning:{invoice['pr']}?amount={invoice['amount']}"
+        invoice = get_invoice(lud16=lud16, sats=requested_invoice_amount)
 
         return f"""[Click to pay with Lightning ⚡️](lightning:{invoice['pr']})\n\n```json\n{invoice}\n```\n"""
+        # ln_link = f"lightning:{invoice['pr']}?amount={invoice['amount']}"
         # return f"""[Click here to pay]({ln_link})\n\n```json\n{invoice}\n```\n"""
         # return f"""<a href="lightning:{invoice['pr']}" target="_blank">Click to pay with Lightning ⚡️</a>"""
 
 
+############################################################################
 def url(request):
     split = request.user_message.split(" ")
     first_arg = split[1] if len(split) > 1 else None
@@ -158,26 +132,50 @@ The content of the URL will be displayed here.
 
 
 
-def summarize(request):
+def readability(request):
+    # TODO: I want to consider charging the user for intensive commands like this...
     split = request.user_message.split(" ")
     first_arg = split[1] if len(split) > 1 else None
 
     #TODO: modularize this code.  Maybe have a _ensure_proper_url() function that can be reused in other commands.
     if not first_arg:
-        return "⚠️ Please provide a URL.\n\n**Example:**\n```\n/summarize https://example.com\n```"
+        return "⚠️ Please provide a URL.\n\n**Example:**\n```\n/article https://example.com\n```"
 
     if first_arg.startswith("http://"):
-        return f"⚠️ The URL must start with `https://`\n\n**Example:**\n```\n/summarize https://example.com\n```"
+        return f"⚠️ The URL must start with `https://`\n\n**Example:**\n```\n/article https://example.com\n```"
 
     if not first_arg.startswith("https://"):
         first_arg = f"https://{first_arg}"
 
-    return f"""
+    try:
+        from readability import Document
+        # url = "https://tftc.io/home-and-car-insurance-providers-retreating/"
+        # response = requests.get( url )
+        response = requests.get( first_arg )
+        doc = Document(response.content)
+
+        article_markdown_contents = f""
+
+        article_markdown_contents += doc.title()
+        article_markdown_contents += doc.summary()
+        article_markdown_contents += doc.content()
+
+
+
+        return f"""
 This command will scrape the provided url and reply with a summary of the content.
 
 The URL you provided is: {first_arg}
+
+Here's the article:
+
+---
+
+{article_markdown_contents}
 """
 
+    except Exception as e:
+        return f"""error in scraping this URL: {e}"""
 
 
 
@@ -185,14 +183,19 @@ The URL you provided is: {first_arg}
 
 
 
+############################################################################
+############################################################################
+# from pydantic import BaseModel, Field
+# from typing import List
 
-
-
+# class BotCommand(BaseModel):
+#     keyword: List[str]
+#     callback: callable
+#     usage_description: str
 
 
 command_list = [
-###################################
-# STANDARD COMMANDS FOR EVERY AGENT
+    # STANDARD COMMANDS FOR EVERY AGENT
     [["hi"], hi, "Tell the bot to say hello to you."],
     [["version"], version, "Get the version of the agent"],
     [["info", "about"], about, "Get information about the agent"],
@@ -200,19 +203,16 @@ command_list = [
     [["draw"], draw, "Get the graph of the agent"],
     [["debug"], debug, "Get debug information"],
 
-###################################
-# PAYMENT COMMANDS
+
+    # PAYMENT COMMANDS
     [["bal"], balance, "Check the your token balance"],
     [["pay"], pay, "Request an invoice to top up your balance"],
 
-###################################
-# CUSTOM COMMANDS TO THIS AGENT
+
+    # CUSTOM COMMANDS TO THIS AGENT
     [["url"], url, "Scrape the URL and reply with the content"],
-    [["summarize"], summarize, "scrape a URL"],
+    [["article"], readability, "scrape a URL"],
 ]
-
-
-
 
 
 def handle_commands(request):

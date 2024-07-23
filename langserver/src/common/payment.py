@@ -1,3 +1,7 @@
+import logging
+logger = logging.getLogger(__name__)
+
+from typing import Union
 import requests
 
 DATABASE_API_PORT = 5101
@@ -6,20 +10,62 @@ DATABASE_API_URL = f"http://localhost"
 API = "http://localhost:5101"
 
 
+DEFAULT_INVOICE_AMOUNT = 100
+
+
 class UserNotRegistered(Exception):
     pass
 
 
-#TODO: THESE TWO SHOULD BE COMBINED INTO ONE FUNCTION!!!!!
+
+def get_user_balance(lud16: str) -> Union[int, None]:
+    """
+        :param lud16: A user's lightning address - should be unique for every user
+
+        Returns the balance of a given user LUD16
+        Returns None if user is not found in database
+    """
+
+    logger.debug(f"Checking balance on LUD16: {lud16}")
+    # Note: Using params instead of json to send username as a query parameter
+    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/balance/", params={"username": lud16})
+
+    try:
+        response.raise_for_status()  # Raises HTTPError for bad HTTP responses
+        user_data = response.json()
+        logger.debug(f"This user has a balance of: {user_data['balance']}")
+        return user_data['balance']
+    except requests.exceptions.HTTPError as e:
+        print("*" * 80)
+        print(f"Error: {e}")
+        print(response.text)
+        print("*" * 80)
+
+        if response.status_code == 404 and response.json().get("detail") == "User not found":
+            # raise UserNotRegistered(f"User not registered: {lud16}")
+            # return 0 #TODO: nope, this is a bad idea... we should raise the exception and handle it in the app.py
+            return None
+        else:
+            # TODO: TEST THIS FLOW
+            raise Exception(f"Error checking balance: {response.status_code} {response.text}")
+
+
+
 def assure_positive_balance(lud16: str) -> bool:
-    bal = _check_balance(lud16)
+    """
+        Return True if provided user lud16 has a positive balance in the user database
+        Return False otherwise, including if user is not registered.
+    """
+    bal = get_user_balance(lud16)
 
     if bal is None:
         return False
     else:
         return bool(bal > 0)
 
-def get_invoice(lud16: str, sats: int = 100):
+
+# def get_invoice(lud16: str, sats: int = DEFAULT_INVOICE_AMOUNT):
+def get_invoice(lud16: str, sats: int):
     response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/invoice/", json={"username": lud16, "sats": sats})
 
     if response.status_code == 200:
@@ -31,46 +77,16 @@ def get_invoice(lud16: str, sats: int = 100):
         # TODO: log and track these errors!!!
         raise Exception(f"Error getting invoice: {response.status_code} {response.text}")
 
-def show_user_balance(lud16):
-    bal = _check_balance(lud16)
-
-    if bal is not None:
-        yield f"User: {lud16}, Balance: {bal}"
-    else:
-        return "Error: Unknown error" # TODO: log and track these errors!!!
 
 
-def get_balance(lud16):
-    bal = _check_balance(lud16)
-
-    if bal is not None:
-        return bal
-    else:
-        raise Exception("Error: error in get_balance()") # TODO: log and track these errors!!!
 
 
-def _check_balance(lud16):
-    # Note: Using params instead of json to send username as a query parameter
-    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/balance/", params={"username": lud16})
+def deduct_with_usage(lud16, chat_id, amount):
+    if not lud16:
+        raise ValueError("User's lud16 is not specified")
 
-    try:
-        response.raise_for_status()  # Raises HTTPError for bad HTTP responses
-        user_data = response.json()
-        return user_data['balance']
-    except requests.exceptions.HTTPError as e:
-        print("*" * 80)
-        print(f"Error: {e}")
-        print(response.text)
-        print("*" * 80)
-
-        if response.status_code == 404 and response.json().get("detail") == "User not found":
-            # raise UserNotRegistered(f"User not registered: {lud16}")
-            return 0 #TODO: nope, this is a bad idea... we should raise the exception and handle it in the app.py
-        else:
-            # TODO: TEST THIS FLOW
-            raise Exception(f"Error checking balance: {response.status_code} {response.text}")
-
-
+    bm = BalanceManager()
+    return bm.deduct_balance(lud16, chat_id, amount)
 
 
 
@@ -103,14 +119,9 @@ class BalanceManager:
         except requests.exceptions.RequestException as e:
             raise ValueError(f"Failed to deduct balance: {e}")
 
-def deduct(lud16, chat_id, amount):
-    if not lud16:
-        raise ValueError("User's lud16 is not specified")
+# def deduct(lud16, chat_id, amount):
+    # if not lud16:
+    #     raise ValueError("User's lud16 is not specified")
 
-    bm = BalanceManager()
-    return bm.deduct_balance(lud16, chat_id, amount)
-
-# Example Usage:
-# bm = BalanceManager()
-# print(bm.check_balance("some_username"))
-# print(bm.deduct_balance("some_username", "chat_id_123", 50))
+    # bm = BalanceManager()
+    # return bm.deduct_balance(lud16, chat_id, amount)

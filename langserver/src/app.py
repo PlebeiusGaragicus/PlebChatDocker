@@ -1,6 +1,12 @@
 import dotenv
 dotenv.load_dotenv()
 
+import logging
+from src.logger import setup_logging
+setup_logging()
+logger = logging.getLogger(__name__)
+
+
 from typing import List
 from pydantic import BaseModel
 
@@ -9,7 +15,7 @@ from fastapi.responses import StreamingResponse, PlainTextResponse
 
 from src.graph.graph import graph
 from src.common.commands import handle_commands
-from src.common.payment import assure_positive_balance, UserNotRegistered, get_balance
+from src.common.payment import assure_positive_balance, UserNotRegistered, get_user_balance
 
 #NOTE: adjust the endpoint in the pipeline module!
 # from pipeline import PIPELINE_ENDPOINT
@@ -17,6 +23,7 @@ PIPELINE_ENDPOINT = "/template"
 
 
 app = FastAPI()
+logger.debug("app is built!")
 
 
 # This is the data that the client (pipeline) sends to us
@@ -44,12 +51,12 @@ async def main(request: PostRequest):
     # user_balance = assure_positive_balance(request.body['user']['email'])
 
     try:
-        user_balance = get_balance(lud16=request.body['user']['email'])
+        user_balance = get_user_balance(lud16=request.body['user']['email'])
     except UserNotRegistered as e:
         error_message = f"Hello new user!  Type `/pay` to get started."
         return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 
-    if user_balance > 0: # assure_positive_balance(request.body['user']['email']):
+    if user_balance < 0: # assure_positive_balance(request.body['user']['email']):
         return StreamingResponse(iter(["Insufficient balance. Please top up your account."]), media_type="text/event-stream")
 
         # NOTE: This doesn't work... it still streams slowly WTF!?!

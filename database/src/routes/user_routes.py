@@ -56,6 +56,10 @@ async def get_invoice(request: UsernameRequest):
 
     if result:
         return result
+    
+    existing_invoice = await invoices_collection.find_one({"username": username, "status": "pending"})
+    if existing_invoice:
+        return invoice_helper(existing_invoice)
 
     # Create New Invoice
     new_invoice_details = invoice_utils.create_invoice(

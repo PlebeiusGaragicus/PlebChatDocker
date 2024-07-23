@@ -1,10 +1,14 @@
+# from src.logger import logger
+# import src.logger
+import logging
+logger = logging.getLogger(__name__)
 import json
 import requests
 from fastapi.responses import StreamingResponse
 
-from src.common.payment import UserNotRegistered
+# from src.common.payment import UserNotRegistered
 
-from src.config import DEFAULT_INVOICE_AMOUNT
+from src.config import DEFAULT_INVOICE_AMOUNT, MINIMUM_INVOICE_AMOUNT, MAXIMUM_INVOICE_AMOUNT
 
 
 
@@ -57,17 +61,21 @@ def balance(request):
     else:
         try:
             from .payment import get_user_balance
-            
-            bal = get_user_balance(lud16)
+
+            bal = get_user_balance(lud16).get("balance", None)
+            logger.warning(bal)
 
             if bal is not None:
                 yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
             else:
                 # TODO: log and track these errors!!!
-                return "Error: Unknown error"
+                # yield "Error: Unknown error"
+                yield "Hi 👋🏻\nYou are an unregistered user.\nUse the `/pay` command to get started."
 
-        except UserNotRegistered as e:
-            error_message = f"Hello new user!  You have no balance yet - type `/pay` to get started."
+        # except UserNotRegistered as e:
+        except Exception as e:
+            # error_message = f"Hello new user!  You have no balance yet - type `/pay` to get started."
+            error_message = f"There was an error checking your balance: {e}"
             return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 
 
@@ -76,13 +84,20 @@ def pay(request):
     try:
         split = request.user_message.split(" ")
         first_arg = split[1] if len(split) > 1 else None
+
         if first_arg:
             requested_invoice_amount = int(first_arg)
+            if requested_invoice_amount < MINIMUM_INVOICE_AMOUNT:
+                return f"⚠️ The minimum invoice amount is {MINIMUM_INVOICE_AMOUNT} sats."
+
+            if requested_invoice_amount > MAXIMUM_INVOICE_AMOUNT:
+                return f"⚠️ The maximum invoice amount is {MAXIMUM_INVOICE_AMOUNT} sats."
         else:
             requested_invoice_amount = DEFAULT_INVOICE_AMOUNT
 
     except Exception as e:
-        return f"I think your request was formatted incorrectly\n{e}"
+        # return f"I think your request was formatted incorrectly\n{e}"
+        return f"⚠️ Please provide a valid invoice amount.\n\n**Example:**\n`\n/pay {DEFAULT_INVOICE_AMOUNT}\n`\n"
 
     lud16 = request.body['user']['email']
     if not lud16:
@@ -133,49 +148,50 @@ The content of the URL will be displayed here.
 
 
 def readability(request):
-    # TODO: I want to consider charging the user for intensive commands like this...
-    split = request.user_message.split(" ")
-    first_arg = split[1] if len(split) > 1 else None
+    return "Not yet implemented"
+#     # TODO: I want to consider charging the user for intensive commands like this...
+#     split = request.user_message.split(" ")
+#     first_arg = split[1] if len(split) > 1 else None
 
-    #TODO: modularize this code.  Maybe have a _ensure_proper_url() function that can be reused in other commands.
-    if not first_arg:
-        return "⚠️ Please provide a URL.\n\n**Example:**\n```\n/article https://example.com\n```"
+#     #TODO: modularize this code.  Maybe have a _ensure_proper_url() function that can be reused in other commands.
+#     if not first_arg:
+#         return "⚠️ Please provide a URL.\n\n**Example:**\n```\n/article https://example.com\n```"
 
-    if first_arg.startswith("http://"):
-        return f"⚠️ The URL must start with `https://`\n\n**Example:**\n```\n/article https://example.com\n```"
+#     if first_arg.startswith("http://"):
+#         return f"⚠️ The URL must start with `https://`\n\n**Example:**\n```\n/article https://example.com\n```"
 
-    if not first_arg.startswith("https://"):
-        first_arg = f"https://{first_arg}"
+#     if not first_arg.startswith("https://"):
+#         first_arg = f"https://{first_arg}"
 
-    try:
-        from readability import Document
-        # url = "https://tftc.io/home-and-car-insurance-providers-retreating/"
-        # response = requests.get( url )
-        response = requests.get( first_arg )
-        doc = Document(response.content)
+#     try:
+#         from readability import Document
+#         # url = "https://tftc.io/home-and-car-insurance-providers-retreating/"
+#         # response = requests.get( url )
+#         response = requests.get( first_arg )
+#         doc = Document(response.content)
 
-        article_markdown_contents = f""
+#         article_markdown_contents = f""
 
-        article_markdown_contents += doc.title()
-        article_markdown_contents += doc.summary()
-        article_markdown_contents += doc.content()
+#         article_markdown_contents += doc.title()
+#         article_markdown_contents += doc.summary()
+#         article_markdown_contents += doc.content()
 
 
 
-        return f"""
-This command will scrape the provided url and reply with a summary of the content.
+#         return f"""
+# This command will scrape the provided url and reply with a summary of the content.
 
-The URL you provided is: {first_arg}
+# The URL you provided is: {first_arg}
 
-Here's the article:
+# Here's the article:
 
----
+# ---
 
-{article_markdown_contents}
-"""
+# {article_markdown_contents}
+# """
 
-    except Exception as e:
-        return f"""error in scraping this URL: {e}"""
+#     except Exception as e:
+#         return f"""error in scraping this URL: {e}"""
 
 
 

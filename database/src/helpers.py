@@ -10,6 +10,15 @@ from src.database import db
 import src.invoice as invoice_utils
 
 
+async def return_user_balance(username: str):
+    user_collection = db.db.get_collection("users")
+    user = await user_collection.find_one({"username": username})
+    if not user:
+        logger.warning("User not found when checking a balance - user must not be registered.")
+        # raise HTTPException(status_code=404, detail="User not found")
+        return None
+    return user.get("balance", None) # should never return none... but just in case
+
 
 
 async def update_user_balance_for_paid_invoices(username: str):
@@ -32,33 +41,33 @@ async def update_user_balance_for_paid_invoices(username: str):
 
     user = await user_collection.find_one({"username": username})
     if not user:
-        logger.debug(f"User '{username}' not found even after insertion.")
         # NOTE: wow... this would be a huge issue... we need to track and report these
+        logger.debug(f"User '{username}' not found even after insertion.")
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
 
 
-async def check_and_update_invoice_status(username: str):
-    invoices_collection = db.db.get_collection("invoices")
-    user_collection = db.db.get_collection("users")
+# async def check_and_update_invoice_status(username: str):
+#     # invoices_collection = db.db.get_collection("invoices")
+#     # user_collection = db.db.get_collection("users")
 
-    total_amount = await process_invoices_and_accumulate_total(username, invoices_collection)
+#     # total_amount = await process_invoices_and_accumulate_total(username, invoices_collection)
 
-    if total_amount > 0:
-        user = await user_collection.find_one({"username": username})
-        if not user:
-            user = {"username": username, "balance": total_amount}
-            await user_collection.insert_one(user)
-        else:
-            new_balance = user["balance"] + total_amount
-            await user_collection.update_one(
-                {"username": username},
-                {"$set": {"balance": new_balance}}
-            )
-        return {"message": f"User {username} balance updated by {total_amount}"}
+#     if total_amount > 0:
+#         user = await user_collection.find_one({"username": username})
+#         if not user:
+#             user = {"username": username, "balance": total_amount}
+#             await user_collection.insert_one(user)
+#         else:
+#             new_balance = user["balance"] + total_amount
+#             await user_collection.update_one(
+#                 {"username": username},
+#                 {"$set": {"balance": new_balance}}
+#             )
+#         return {"message": f"User {username} balance updated by {total_amount}"}
 
-    return {}
+#     return {}
 
 
 async def process_invoices_and_accumulate_total(username: str, invoices_collection):

@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse, PlainTextResponse
 
 from src.graph.graph import graph
 from src.common.commands import handle_commands
-from src.common.payment import assure_positive_balance, UserNotRegistered, get_user_balance
+from src.common.payment import get_user_balance
 
 #NOTE: adjust the endpoint in the pipeline module!
 # from pipeline import PIPELINE_ENDPOINT
@@ -52,7 +52,9 @@ async def main(request: PostRequest):
 
     try:
         user_balance = get_user_balance(lud16=request.body['user']['email'])
-    except UserNotRegistered as e:
+    # except UserNotRegistered as e:
+    except Exception as e:
+        #TODO: I think I have a new flow so I don't need this anymore
         error_message = f"Hello new user!  Type `/pay` to get started."
         return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 

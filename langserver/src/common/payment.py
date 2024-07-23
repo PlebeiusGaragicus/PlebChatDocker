@@ -13,8 +13,8 @@ API = "http://localhost:5101"
 DEFAULT_INVOICE_AMOUNT = 100
 
 
-class UserNotRegistered(Exception):
-    pass
+# class UserNotRegistered(Exception):
+#     pass
 
 
 
@@ -32,9 +32,13 @@ def get_user_balance(lud16: str) -> Union[int, None]:
 
     try:
         response.raise_for_status()  # Raises HTTPError for bad HTTP responses
-        user_data = response.json()
-        logger.debug(f"This user has a balance of: {user_data['balance']}")
-        return user_data['balance']
+        # user_data = response.json()
+        # logger.debug(f"This user has a balance of: {user_data['balance']}")
+        # return user_data['balance']
+        balance = response.json()
+        logger.debug(f"This user has a balance of: {balance}")
+        return balance
+
     except requests.exceptions.HTTPError as e:
         print("*" * 80)
         print(f"Error: {e}")
@@ -66,7 +70,7 @@ def assure_positive_balance(lud16: str) -> bool:
 
 # def get_invoice(lud16: str, sats: int = DEFAULT_INVOICE_AMOUNT):
 def get_invoice(lud16: str, sats: int):
-    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/invoice/", json={"username": lud16, "sats": sats})
+    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/invoice/", json={"username": lud16, "invoice_amount": sats})
 
     if response.status_code == 200:
         invoice = response.json()

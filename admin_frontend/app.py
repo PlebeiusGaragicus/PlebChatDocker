@@ -212,16 +212,16 @@ def get_all_users():
         return []
 
 # Create a user
-st.header("Create User")
-username = st.text_input("Username")
-balance = st.number_input("Initial Balance", min_value=0)
-if st.button("Create User"):
-    try:
-        response = requests.post(f"{DATABASE_API_URL}/admin/users/", json={"username": username, "balance": balance})
-        response.raise_for_status()
-        st.success(f"User {username} created successfully!")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error: {e}")
+# st.header("Create User")
+# username = st.text_input("Username")
+# balance = st.number_input("Initial Balance", min_value=0)
+# if st.button("Create User"):
+#     try:
+#         response = requests.post(f"{DATABASE_API_URL}/admin/users/", json={"username": username, "balance": balance})
+#         response.raise_for_status()
+#         st.success(f"User {username} created successfully!")
+#     except requests.exceptions.RequestException as e:
+#         st.error(f"Error: {e}")
 
 # Fetch all users and their balances
 st.header("All Users")
@@ -255,8 +255,10 @@ if users:
         try:
             response = requests.get(f"{DATABASE_API_URL}/balance/", params={"username": get_username})
             response.raise_for_status()
-            user_data = response.json()
-            st.info(f"User: {user_data['username']}, Balance: {user_data['balance']}")
+            # user_data = response.json()
+            # st.info(f"User: {user_data['username']}, Balance: {user_data['balance']}")
+            user_balance = response.json()
+            st.info(f"User: {get_username}, Balance: {user_balance}")
         except requests.exceptions.RequestException as e:
             st.error(f"Error: {e}")
 
@@ -287,31 +289,31 @@ def get_all_invoices():
         st.error(f"Failed to fetch invoices: {e}")
         return []
 
-# Create a new invoice
-st.header("Create Invoice")
-invoice_username = st.text_input("Invoice Username")
-invoice_pr = st.text_input("Invoice PR")
-invoice_amount = st.number_input("Invoice Amount", min_value=0)
-if st.button("Create Invoice"):
-    invoice_data = {
-        "username": invoice_username,
-        "pr": invoice_pr,
-        "routes": [],
-        "status": "pending",  # or 'paid', 'archived'
-        "successAction": {
-            "message": "Thanks, sats received!",
-            "tag": "message"
-        },
-        "verify": "https://getalby.com/lnurlp/turkeybiscuit/verify/xiNZ8HdmD3WzQJWMrhN8yDa7",
-        "amount": invoice_amount,
-        "issued_at": None  # this will be set by the server if left None
-    }
-    try:
-        response = requests.post(f"{DATABASE_API_URL}/admin/invoices/", json=invoice_data)
-        response.raise_for_status()
-        st.success("Invoice created successfully!")
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error: {e}")
+# # Create a new invoice
+# st.header("Create Invoice")
+# invoice_username = st.text_input("Invoice Username")
+# invoice_pr = st.text_input("Invoice PR")
+# invoice_amount = st.number_input("Invoice Amount", min_value=0)
+# if st.button("Create Invoice"):
+#     invoice_data = {
+#         "username": invoice_username,
+#         "pr": invoice_pr,
+#         "routes": [],
+#         "status": "pending",  # or 'paid', 'archived'
+#         "successAction": {
+#             "message": "Thanks, sats received!",
+#             "tag": "message"
+#         },
+#         "verify": "https://getalby.com/lnurlp/turkeybiscuit/verify/xiNZ8HdmD3WzQJWMrhN8yDa7",
+#         "amount": invoice_amount,
+#         "issued_at": None  # this will be set by the server if left None
+#     }
+#     try:
+#         response = requests.post(f"{DATABASE_API_URL}/admin/invoices/", json=invoice_data)
+#         response.raise_for_status()
+#         st.success("Invoice created successfully!")
+#     except requests.exceptions.RequestException as e:
+#         st.error(f"Error: {e}")
 
 # Display invoices based on selected user
 st.header("All Invoices")
@@ -323,7 +325,10 @@ if invoices:
     user_invoices = [invoice for invoice in invoices if invoice["username"] == selected_user]
     
     if user_invoices:
-        st.write(user_invoices)
+        for invoice in user_invoices:
+            with st.expander(f"{invoice['issued_at']} - {invoice['status']} - {invoice['amount']}"):
+                st.write(invoice)
+
         invoice_ids = [invoice["id"] for invoice in user_invoices]
 
         st.header("Delete Invoice")

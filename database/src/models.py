@@ -36,6 +36,10 @@ class UsernameRequest(BaseModel):
     username: str
 
 
+class InvoiceRequest(BaseModel):
+    username: str
+    invoice_amount: int
+
 class Transaction(BaseModel):
     username: str = Field(...)
     chat_id: str = Field(...)

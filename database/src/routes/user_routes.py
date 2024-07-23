@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from datetime import datetime
 
 from src.logger import logger
-from src.models import UsernameRequest, TransactionRequest
+from src.models import UsernameRequest, TransactionRequest, InvoiceRequest
 from src.database import db
 import src.helpers as helpers
 import src.invoice as invoice_utils
@@ -40,18 +40,33 @@ def invoice_helper(invoice) -> dict:
 async def get_balance(username: str):
     logger.debug(f"/balance/\tRequest: {username}")
 
-    user = await helpers.update_user_balance_for_paid_invoices(username)
-    return {"username": username, "balance": user["balance"]}
+    # user = await helpers.update_user_balance_for_paid_invoices(username)
+    # return {"username": username, "balance": user["balance"]}
+    balance = await helpers.return_user_balance(username)
+    return {"balance": balance}
 
 
 
 
 @router.get("/invoice/")
-async def get_invoice(request: UsernameRequest):
+async def get_invoice(request: InvoiceRequest):
+    test_invoice = Invoice(
+        username=request.username,
+        pr="lnbc1u1pnflm39pp5jdd4kf6g....",
+        routes=[],
+        status="pending",
+        successAction={"message": "Thanks, sats received!","tag": "message"},
+        verify="https://getalby.com/lnurlp/turkeybiscuit/verify/1mosQtN8GHDJup9B2m6HJE4w",
+        amount=request.invoice_amount,
+    ).dict()
+    test_invoice['_id'] = "1234567890"
+
+    return invoice_helper(invoice=test_invoice)
     logger.debug("get_invoice endpoint called")
     logger.debug(f"Request: {request}")
 
     username = request.username
+    amount = request.invoice_amount
     result = await helpers.check_and_update_invoice_status(username)
 
     if result:
@@ -63,7 +78,7 @@ async def get_invoice(request: UsernameRequest):
 
     # Create New Invoice
     new_invoice_details = invoice_utils.create_invoice(
-        amount=100
+        amount=amount
     )  # Check the amount parameter, you can modify it as needed
     if "error" in new_invoice_details:
         raise HTTPException(

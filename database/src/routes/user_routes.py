@@ -38,8 +38,7 @@ def invoice_helper(invoice) -> dict:
 
 @router.get("/balance/")
 async def get_balance(username: str):
-    logger.debug("get_balance endpoint called")
-    logger.debug(f"Request: {username}")
+    logger.debug(f"/balance/\tRequest: {username}")
 
     user = await helpers.update_user_balance_for_paid_invoices(username)
     return {"username": username, "balance": user["balance"]}

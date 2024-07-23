@@ -13,10 +13,8 @@ from src.routes import user_routes, admin_routes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Connecting to MongoDB...")
     await connect_to_mongo()
     yield
-    logger.info("Closing MongoDB connection...")
     await close_mongo_connection()
 
 app = FastAPI(lifespan=lifespan)

@@ -9,19 +9,12 @@ import src.helpers as helpers
 import src.invoice as invoice_utils
 
 from src.models import Transaction, Invoice
-
+# from src.helpers import transaction_helper, invoice_helper
 
 router = APIRouter()
 
 
-def transaction_helper(transaction) -> dict:
-    return {
-        "id": str(transaction["_id"]),
-        "username": transaction["username"],
-        "chat_id": transaction["chat_id"],
-        "amount": transaction["amount"],
-        "timestamp": transaction["timestamp"]
-    }
+
 
 def invoice_helper(invoice) -> dict:
     return {
@@ -37,6 +30,22 @@ def invoice_helper(invoice) -> dict:
     }
 
 
+
+def transaction_helper(transaction) -> dict:
+    return {
+        "id": str(transaction["_id"]),
+        "username": transaction["username"],
+        "chat_id": transaction["chat_id"],
+        "amount": transaction["amount"],
+        "timestamp": transaction["timestamp"]
+    }
+
+
+
+
+
+
+
 @router.get("/balance/")
 async def get_balance(username: str):
     logger.debug(f"/balance/\tRequest: {username}")
@@ -49,33 +58,53 @@ async def get_balance(username: str):
 
 
 
+
 @router.get("/invoice/")
 async def get_invoice(request: InvoiceRequest):
-    test_invoice = Invoice(
-        username=request.username,
-        pr="lnbc1u1pnflm39pp5jdd4kf6g....",
-        routes=[],
-        status="pending",
-        successAction={"message": "Thanks, sats received!","tag": "message"},
-        verify="https://getalby.com/lnurlp/turkeybiscuit/verify/1mosQtN8GHDJup9B2m6HJE4w",
-        amount=request.invoice_amount,
-    ).dict()
-    test_invoice['_id'] = "1234567890"
-
-    return invoice_helper(invoice=test_invoice)
     logger.debug("get_invoice endpoint called")
     logger.debug(f"Request: {request}")
 
-    username = request.username
-    amount = request.invoice_amount
-    result = await helpers.check_and_update_invoice_status(username)
 
-    if result:
-        return result
+    # test_invoice = Invoice(
+    #     username=request.username,
+    #     pr="lnbc1u1pnflm39pp5jdd4kf6g....",
+    #     routes=[],
+    #     status="pending",
+    #     successAction={"message": "Thanks, sats received!","tag": "message"},
+    #     verify="https://getalby.com/lnurlp/turkeybiscuit/verify/1mosQtN8GHDJup9B2m6HJE4w",
+    #     amount=request.invoice_amount,
+    # ).dict()
+    # test_invoice['_id'] = "1234567890"
+    # return invoice_helper(invoice=test_invoice)
+
+
+################################################################
+#### REFACTOR HERE #######
+
+
+
+
+    username: str = request.username
+    amount: int = request.invoice_amount
+    # result = await helpers.check_and_update_invoice_status(username)
+
+    # if result:
+    #     return result
     
-    existing_invoice = await invoices_collection.find_one({"username": username, "status": "pending"})
-    if existing_invoice:
-        return invoice_helper(existing_invoice)
+    # existing_invoice = await invoices_collection.find_one({"username": username, "status": "pending"})
+    # if existing_invoice:
+    #     return invoice_helper(existing_invoice)
+
+
+
+
+
+
+
+
+
+
+    raise NotImplementedError("This endpoint is not implemented yet")
 
     # Create New Invoice
     # TODO: Check the amount parameter, you can modify it as needed
@@ -122,6 +151,10 @@ async def get_invoice(request: InvoiceRequest):
 
 @router.put("/tx/")
 async def deduct_balance(request: TransactionRequest):
+    """
+        NOTE: This tracks user token usage
+        #TODO: refactor
+    """
     logger.debug("deduct_balance endpoint called")
     logger.debug(f"Request: {request}")
 

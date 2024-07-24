@@ -64,17 +64,17 @@ def balance(request):
             from .payment import get_user_balance
 
             bal = get_user_balance(lud16).get("balance", None)
-            logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
 
             if bal is not None:
+                logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
                 yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
             else:
-                # TODO: log and track these errors!!!
-                # yield "Error: Unknown error"
+                logger.warning(f"Error checking balance for {lud16}")
                 yield "Hi 👋🏻\nYou are an unregistered user.\nUse the `/pay` command to get started."
 
         # except UserNotRegistered as e:
         except Exception as e:
+            logger.error(f"Error checking balance for {lud16}: {e}")
             if os.getenv("DEBUG"):
                 # NOTE: hide the error message details from the user unless we're debugging!
                 error_message = f"There was an error checking your balance:\n`{e}`"
@@ -103,15 +103,12 @@ def pay(request):
             requested_invoice_amount = DEFAULT_INVOICE_AMOUNT
 
     except Exception as e:
-        # return f"I think your request was formatted incorrectly\n{e}"
         return f"⚠️ Please provide a valid invoice amount.\n\n**Example:**\n`\n/pay {DEFAULT_INVOICE_AMOUNT}\n`\n"
 
     lud16 = request.body['user']['email']
     if not lud16:
         return "⚠️ No user LUD16 provided." #TODO: we need to log these errors.  This should never happen!!
     else:
-        #TODO: the user can specify an amount to invoice??
-
         from .payment import get_invoice
         invoice = get_invoice(lud16=lud16, sats=requested_invoice_amount)
 

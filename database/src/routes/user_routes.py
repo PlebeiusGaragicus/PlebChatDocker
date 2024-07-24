@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, HTTPException, status
 from datetime import datetime
 
@@ -77,9 +78,19 @@ async def get_invoice(request: InvoiceRequest):
         return invoice_helper(existing_invoice)
 
     # Create New Invoice
+    # TODO: Check the amount parameter, you can modify it as needed
+    payee = os.getenv('PAYEE_LUD16')
+    if not payee:
+        logger.critical("Payee address not found - This server is not configured correctly!!")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Payee address not found - This server is not configured correctly!!"
+        )
+
     new_invoice_details = invoice_utils.create_invoice(
-        amount=amount
-    )  # Check the amount parameter, you can modify it as needed
+        amount=amount,
+        payee_address=payee
+    )
     if "error" in new_invoice_details:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

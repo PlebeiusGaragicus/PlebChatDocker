@@ -55,17 +55,17 @@ def get_user_balance(lud16: str) -> Union[int, None]:
 
 
 
-def assure_positive_balance(lud16: str) -> bool:
-    """
-        Return True if provided user lud16 has a positive balance in the user database
-        Return False otherwise, including if user is not registered.
-    """
-    bal = get_user_balance(lud16)
+# def assure_positive_balance(lud16: str) -> bool:
+#     """
+#         Return True if provided user lud16 has a positive balance in the user database
+#         Return False otherwise, including if user is not registered.
+#     """
+#     bal = get_user_balance(lud16)
 
-    if bal is None:
-        return False
-    else:
-        return bool(bal > 0)
+#     if bal is None:
+#         return False
+#     else:
+#         return bool(bal > 0)
 
 
 # def get_invoice(lud16: str, sats: int = DEFAULT_INVOICE_AMOUNT):
@@ -83,14 +83,6 @@ def get_invoice(lud16: str, sats: int):
 
 
 
-
-
-def deduct_with_usage(lud16, chat_id, amount):
-    if not lud16:
-        raise ValueError("User's lud16 is not specified")
-
-    bm = BalanceManager()
-    return bm.deduct_balance(lud16, chat_id, amount)
 
 
 
@@ -129,3 +121,12 @@ class BalanceManager:
 
     # bm = BalanceManager()
     # return bm.deduct_balance(lud16, chat_id, amount)
+
+
+
+def deduct_with_usage(lud16, chat_id, amount):
+    if not lud16:
+        raise ValueError("User's lud16 is not specified")
+
+    bm = BalanceManager()
+    return bm.deduct_balance(lud16, chat_id, amount)

@@ -76,7 +76,7 @@ class Invoice(BaseModel):
     username: str = Field(...)
     pr: str = Field(...)
     routes: list = Field(default_factory=list)
-    status: str = Field(..., pattern="^(pending|paid|archived)$") # Change 'regex' to 'pattern'
+    status: str = Field(..., pattern="^(pending|settled|archived)$") # Change 'regex' to 'pattern'
     successAction: SuccessAction = Field(...)
     verify: str = Field(...)
     amount: float = Field(...)

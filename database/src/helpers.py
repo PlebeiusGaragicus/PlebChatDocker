@@ -3,6 +3,8 @@ logger = logging.getLogger(__name__)
 
 import time
 import json
+from typing import Union, Optional
+
 from fastapi import HTTPException
 import bolt11
 
@@ -10,14 +12,18 @@ from src.database import db
 import src.invoice as invoice_utils
 
 
-async def return_user_balance(username: str):
+async def return_user_balance(username: str) -> Optional[int]:
     user_collection = db.db.get_collection("users")
     user = await user_collection.find_one({"username": username})
     if not user:
         logger.warning("User not found when checking a balance - user must not be registered.")
         # raise HTTPException(status_code=404, detail="User not found")
         return None
-    return user.get("balance", None) # should never return none... but just in case
+
+    balance = user.get("balance", None)
+    if balance is not None:
+        return int(balance)
+    return None # it should never reach here, but just in case...
 
 
 

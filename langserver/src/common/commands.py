@@ -1,5 +1,6 @@
 # from src.logger import logger
 # import src.logger
+import os
 import logging
 logger = logging.getLogger(__name__)
 import json
@@ -63,7 +64,7 @@ def balance(request):
             from .payment import get_user_balance
 
             bal = get_user_balance(lud16).get("balance", None)
-            logger.warning(bal)
+            logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
 
             if bal is not None:
                 yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
@@ -74,9 +75,15 @@ def balance(request):
 
         # except UserNotRegistered as e:
         except Exception as e:
-            # error_message = f"Hello new user!  You have no balance yet - type `/pay` to get started."
-            error_message = f"There was an error checking your balance: {e}"
-            return StreamingResponse(iter([error_message]), media_type="text/event-stream")
+            if os.getenv("DEBUG"):
+                # NOTE: hide the error message details from the user unless we're debugging!
+                error_message = f"There was an error checking your balance:\n`{e}`"
+            else:
+                error_message = f"There was an error checking your balance."
+
+            #NOTE: we don't return a streaming response - anything yielded from a command will be streamed back to the user.
+            # return StreamingResponse(iter([error_message]), media_type="text/event-stream")
+            yield error_message
 
 
 def pay(request):

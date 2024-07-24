@@ -49,7 +49,7 @@ def check_for_payment(invoice):
 
 TOKENS_PER_SAT = 10
 
-def create_invoice(amount: int = 100, payee_address: str = "turkeybiscuit@getalby.com"):
+def create_invoice(amount: int, payee_address: str):
     """
     Create a lightning invoice.
     
@@ -63,7 +63,6 @@ def create_invoice(amount: int = 100, payee_address: str = "turkeybiscuit@getalb
     """
     logger.info(f"Creating invoice for {amount} sats")
 
-    # ln_address = "turkeybiscuit@getalby.com"
     url = "https://api.getalby.com/lnurl/generate-invoice"
     params = {
         "ln": payee_address,

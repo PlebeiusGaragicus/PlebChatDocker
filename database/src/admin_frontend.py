@@ -56,7 +56,14 @@ async def main():
     st.header("All Users")
     user_collection = db.db.get_collection("users")
     users = await user_collection.find().to_list(length=None)
-    st.write(users)
+    # st.write(users)
+    # show each user as a table with a delete button
+    for user in users:
+        st.write(user)
+        if st.button("Delete", key=user["_id"]):
+            await user_collection.delete_one({"_id": user["_id"]})
+            st.write("Deleted user")
+            break
 
 
 

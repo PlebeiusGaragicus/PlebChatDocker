@@ -3,10 +3,8 @@ from datetime import datetime
 
 from src.logger import logger
 from src.database import db
-from src.models import TransactionRequest, InvoiceRequest
+from src.models import UsageDeducation, UsageRecord, InvoiceRequest, TransactionRequest
 from src.payment import return_user_balance, create_invoice, poll_pending_invoices, get_single_pending_invoice
-
-from src.models import Transaction
 
 router = APIRouter()
 
@@ -46,34 +44,16 @@ async def get_invoice(request: InvoiceRequest):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @router.put("/tx/")
-async def deduct_balance(request: TransactionRequest):
-    """
-        NOTE: This tracks user token usage
-        #TODO: refactor
-    """
+async def deduct_balance(request: UsageDeducation):
+    """ NOTE: This tracks user token usage and deducts the token from the user's account balance. """
+
     logger.debug("deduct_balance endpoint called")
     logger.debug(f"Request: {request}")
 
     username = request.username
-    chat_id = request.chat_id
-    amount = request.amount
+    thread_id = request.thread_id
+    tokens_used = request.tokens_used
 
     user_collection = db.db.get_collection("users")
     user = await user_collection.find_one({"username": username})
@@ -81,10 +61,10 @@ async def deduct_balance(request: TransactionRequest):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    if user["balance"] + amount < 0:
+    if user["balance"] + tokens_used < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance")
 
-    new_balance = user["balance"] + amount  # `amount` is expected to be negative for deduction
+    new_balance = user["balance"] - tokens_used  # `amount` is expected to be negative for deduction
     await user_collection.update_one(
         {"username": username},
         {"$set": {"balance": new_balance}}
@@ -92,13 +72,12 @@ async def deduct_balance(request: TransactionRequest):
 
     # Optional: log the transaction in a transactions collection
     tx_collection = db.db.get_collection("transactions")
-    new_tx = Transaction(
+    new_tx = UsageRecord(
         username=username,
-        chat_id=chat_id,
-        amount=amount,
+        thread_id=thread_id,
+        tokens_used=tokens_used,
         timestamp=datetime.utcnow()
     )
     await tx_collection.insert_one(new_tx.dict())
 
     return {"username": username, "new_balance": new_balance}
-

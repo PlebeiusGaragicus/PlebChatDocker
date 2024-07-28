@@ -40,36 +40,36 @@ class InvoiceRequest(BaseModel):
     username: str
     invoice_amount: int
 
-class Transaction(BaseModel):
-    username: str = Field(...)
-    chat_id: str = Field(...)
-    amount: float = Field(...)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+# class Transaction(BaseModel):
+#     username: str = Field(...)
+#     chat_id: str = Field(...)
+#     amount: float = Field(...)
+#     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "username": "john_doe",
-                "chat_id": "chat_12345",
-                "amount": -5.0,
-                "timestamp": "2023-10-10T00:00:00Z"
-            }
-        }
+#     class Config:
+#         json_schema_extra = {
+#             "example": {
+#                 "username": "john_doe",
+#                 "chat_id": "chat_12345",
+#                 "amount": -5.0,
+#                 "timestamp": "2023-10-10T00:00:00Z"
+#             }
+#         }
 
 class SuccessAction(BaseModel):
     message: str
     tag: str
 
 
-class TransactionRequest(BaseModel):
+class UsageDeducation(BaseModel):
     username: str
-    chat_id: str
-    amount: float
+    thread_id: str
+    tokens_used: int
 
-class Transaction(BaseModel):
+class UsageRecord(BaseModel):
     username: str = Field(...)
-    chat_id: str = Field(...)
-    amount: float = Field(...)
+    thread_id: str = Field(...)
+    tokens_used: float = Field(...)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class Invoice(BaseModel):

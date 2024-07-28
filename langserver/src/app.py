@@ -65,58 +65,61 @@ async def main(request: PostRequest):
 
     ########################################
     # CHECK BALANCE
-    try:
-        user_balance = get_user_balance(lud16=request.body['user']['email'])
-        user_balance = user_balance['balance']
-        logger.debug(f"User balance: {user_balance}")
+    is_admin = request.body['user']['role'] == "admin"
+    if not is_admin:
+        try:
+            user_balance = get_user_balance(lud16=request.body['user']['email'])
+            user_balance = user_balance['balance']
+            logger.debug(f"User balance: {user_balance}")
 
-    except Exception as e:
-        if os.getenv("DEBUG", None):
-            # NOTE: hide the error message details from the user unless we're debugging!
-            error_message = f"There was an error checking your balance:\n`{e}`"
-        else:
-            error_message = f"There was an error checking your balance."
+        except Exception as e:
+            if os.getenv("DEBUG", None):
+                # NOTE: hide the error message details from the user unless we're debugging!
+                error_message = f"There was an error checking your balance:\n`{e}`"
+            else:
+                error_message = f"There was an error checking your balance."
 
-        return StreamingResponse(iter([error_message]), media_type="text/event-stream")
-
-    if user_balance is None or user_balance < 0: # assure_positive_balance(request.body['user']['email']):
-        # TODO - say the user's name and tell them something nicer
-        return StreamingResponse(iter(["Insufficient balance. Please top up your account."]), media_type="text/event-stream")
+            return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 
 
-    else:
-        #####################################
-        # INVOKE THE GRAPH
-        async def event_stream():
-            graph_input = {
-                "messages": [request.messages[-1]],
-                "lud16": request.body['user']['email']
-            }
+        if user_balance is None or user_balance < 0:
+            # TODO - say the user's name and tell them something nicer
+            return StreamingResponse(iter(["Your token balance has run out - pay for more tokens by typing '/pay'."]), media_type="text/event-stream")
 
-            config = {"configurable": {
-                "lud16": request.body['user']['email'],
-                "thread_id": request.body['chat_id'],
-            }}
 
-            graph = return_graph(request.body['graph_name'])
+    #####################################
+    # INVOKE THE GRAPH
+    async def event_stream():
+        graph_input = {
+            "messages": [request.messages[-1]],
+            "lud16": request.body['user']['email']
+        }
 
-            # async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
-            # async for event in return_graph(request.body['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
-            async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
+        config = {"configurable": {
+            "is_admin": is_admin,
+            "lud16": request.body['user']['email'],
+            "thread_id": request.body['chat_id'],
+        }}
 
-                kind = event["event"]
-                if  kind == "on_chat_model_stream" or kind=="on_chain_stream":
-                    content = event["data"]["chunk"]
+        graph = return_graph(request.body['graph_name'])
 
-                    if content:
-                        if isinstance(content, dict):
-                            yield ''
-                            # pass
-                        else:
-                            print(content.content, end="")
-                            yield content.content
+        # async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
+        # async for event in return_graph(request.body['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
+        async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
 
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+            kind = event["event"]
+            if  kind == "on_chat_model_stream" or kind=="on_chain_stream":
+                content = event["data"]["chunk"]
+
+                if content:
+                    if isinstance(content, dict):
+                        yield ''
+                        # pass
+                    else:
+                        print(content.content, end="")
+                        yield content.content
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 

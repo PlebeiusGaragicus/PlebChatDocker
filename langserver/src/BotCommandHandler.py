@@ -76,7 +76,17 @@ class BotCommandHandler:
 ####################################################################################
     def bal(self, request, *args):
         """Check your token balance."""
-        lud16 = request.body['user']['email']
+
+        is_admin = request.body['user']['role'] == 'admin'
+        user_to_check = args[0] if args else None
+        if is_admin and user_to_check is None:
+            return """You're a system administrator - you don't have a balance.\nYou can use me for free!\nUse `/bal <username>` to check a user's balance."""
+
+        if is_admin and user_to_check is not None:
+            lud16 = user_to_check
+        else:
+            lud16 = request.body['user']['email']
+
         if not lud16:
             return "⚠️ No user LUD16 provided." #TODO: we need to log these errors.  This should never happen!!
 
@@ -87,10 +97,10 @@ class BotCommandHandler:
 
                 if bal is None:
                     logger.warning(f"Error checking balance for {lud16}")
-                    yield "Hi 👋🏻\nYou are an unregistered user.\nUse the `/pay` command to get started."
+                    return "Hi 👋🏻\nYou are an unregistered user.\nUse the `/pay` command to get started."
                 else:
                     logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
-                    yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
+                    return f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
 
             except Exception as e:
                 logger.error(f"Error checking balance for {lud16}: {e}")
@@ -100,15 +110,20 @@ class BotCommandHandler:
                 else:
                     error_message = f"There was an error checking your balance."
 
-                yield error_message
+                return error_message
 
 
 ####################################################################################
 
     def pay(self, request, *args):
         """Request an invoice to top up your balance."""
+        is_admin = request.body['user']['role'] == 'admin'
+        if is_admin:
+            return "You're a system administrator - you don't have to pay!\nYou can use me for free!"
+
+
         try:
-            split = request.user_message.split(" ")
+            # split = request.user_message.split(" ")
             # first_arg = split[1] if len(split) > 1 else None
 
             # if first_arg:
@@ -148,6 +163,11 @@ lightning:{invoice['pr']}
 
     def usage(self, request, *args):
         """Track your token usage for the last `n` days with "`/usage n`\""""
+
+        is_admin = request.body['user']['role'] == 'admin'
+        if is_admin:
+            return "You're a system administrator - I don't track your usage!\nYou can use me for free!"
+
         return "This feature is not yet implemented."
 
 
@@ -158,6 +178,7 @@ lightning:{invoice['pr']}
 ####################################################################################
 
     def read(self, request, *args):
+        # TODO: charge the user for this feature!!
         """Scrape a URL and return the article."""
         url = args[0] if args else "No URL provided"
         return f"Returning article from {url}"
@@ -214,6 +235,7 @@ lightning:{invoice['pr']}
 
 # ############################################################################
     def url(self, request, *args):
+        # TODO: charge the user for this feature!!
         """Scrape the URL and reply with the content."""
         url = args[0] if args else "No URL provided"
         return f"Scraping content from {url}"

@@ -2,7 +2,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama
 from langchain_core.chat_history import AIMessage, BaseMessage
 
-from src.common.payment import deduct_with_usage
+from src.payment import deduct_with_usage
 from src.graph import State
 
 

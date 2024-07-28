@@ -1,3 +1,4 @@
+import os
 import dotenv
 dotenv.load_dotenv()
 
@@ -14,8 +15,8 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, PlainTextResponse
 
 from src.graph.graph import graph
-from src.common.commands import handle_commands
-from src.common.payment import get_user_balance
+from src.commands import handle_commands
+from src.payment import get_user_balance
 
 #NOTE: adjust the endpoint in the pipeline module!
 # from pipeline import PIPELINE_ENDPOINT
@@ -52,13 +53,20 @@ async def main(request: PostRequest):
 
     try:
         user_balance = get_user_balance(lud16=request.body['user']['email'])
+        user_balance = user_balance['balance']
+        # logger.critical(user_balance)
     # except UserNotRegistered as e:
     except Exception as e:
-        #TODO: I think I have a new flow so I don't need this anymore
-        error_message = f"Hello new user!  Type `/pay` to get started."
+        if os.getenv("DEBUG", None):
+            # NOTE: hide the error message details from the user unless we're debugging!
+            error_message = f"There was an error checking your balance:\n`{e}`"
+        else:
+            error_message = f"There was an error checking your balance."
+
         return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 
-    if user_balance < 0: # assure_positive_balance(request.body['user']['email']):
+    if user_balance is None or user_balance < 0: # assure_positive_balance(request.body['user']['email']):
+        # TODO - say the user's name and tell them something nicer
         return StreamingResponse(iter(["Insufficient balance. Please top up your account."]), media_type="text/event-stream")
 
         # NOTE: This doesn't work... it still streams slowly WTF!?!

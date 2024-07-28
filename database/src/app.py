@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from src.database import connect_to_mongo, close_mongo_connection
-from src.routes import user_routes, admin_routes
+from src.routes import user_routes #, admin_routes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,7 +42,7 @@ async def log_requests(request: Request, call_next):
 
 # Include the user and admin routers
 # app.include_router(user_routes.router, prefix="/user", tags=["user"])
-app.include_router(admin_routes.router, prefix="/admin", tags=["admin"])
+# app.include_router(admin_routes.router, prefix="/admin", tags=["admin"])
 app.include_router(user_routes.router)
 # app.include_router(admin_routes.router)
 

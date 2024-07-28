@@ -2,7 +2,7 @@ import json
 import requests
 from typing_extensions import TypedDict
 
-from typing import List, Union, Generator, Iterator
+from typing import List, Union, Generator, Iterator, Optional
 try:
     from pydantic.v1 import BaseModel
 except Exception:
@@ -29,6 +29,19 @@ class Pipeline:
 
     def __init__(self):
         self.name = CONSTRUCT_NAME
+        self.chat_id = None
+
+    async def inlet(self, body: dict, user: Optional[dict] = None) -> dict:
+        # print(f"inlet:{__name__}")
+        # print(f"user: {user}")
+        # print(f"body: {body}")
+
+        # Store the chat_id from body
+        self.chat_id = body.get("chat_id")
+        print(f"Stored chat_id: {self.chat_id}")
+
+        return body
+
 
     async def on_startup(self):
         print(f">>> PIPELINE {self.name.upper()} IS STARTING!!! <<<")
@@ -68,6 +81,7 @@ class Pipeline:
                 'Content-Type': 'application/json'
             }
 
+            body['chat_id'] = self.chat_id
             req = PostRequest(user_message=user_message, messages=messages, body=body)
             response = requests.post(url, json=req, headers=headers, stream=True)
             for line in response.iter_lines():

@@ -1,16 +1,10 @@
-# from src.logger import logger
-# import src.logger
 import os
+import json
 import logging
 logger = logging.getLogger(__name__)
-import json
-import requests
-from fastapi.responses import StreamingResponse
 
-# from src.common.payment import UserNotRegistered
 
 from src.config import DEFAULT_INVOICE_AMOUNT, MINIMUM_INVOICE_AMOUNT, MAXIMUM_INVOICE_AMOUNT
-
 
 
 
@@ -48,9 +42,19 @@ def draw(_):
     from src.graph.graph import GRAPH_ASCII
     return f"```\n{GRAPH_ASCII}\n```"
 
+def long(_):
+    return "sfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj fsfd;ljas;fljas d;fljk asdf;lk jasdf;lj asdf;kjlas ;lkjf;lejiaf;io jae;lfj ads;lfjk ;oeifj ;oaj f"
+
+def whoami(request):
+    username = request.body['user']['email']
+    return f"Your username is: `{username}`"
+
 
 def debug(request):
-    return f"# body:\n```json\n{json.dumps(request.body, indent=4)}\n```"
+    debug = os.getenv('DEBUG')
+    return f"'DEBUG' environment variable: `{debug}`\n\n**body:**\n```json\n{json.dumps(request.body, indent=4)}\n```"
+
+
 
 
 
@@ -59,30 +63,27 @@ def balance(request):
     lud16 = request.body['user']['email']
     if not lud16:
         return "⚠️ No user LUD16 provided." #TODO: we need to log these errors.  This should never happen!!
+
     else:
         try:
             from .payment import get_user_balance
-
             bal = get_user_balance(lud16).get("balance", None)
 
-            if bal is not None:
-                logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
-                yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
-            else:
+            if bal is None:
                 logger.warning(f"Error checking balance for {lud16}")
                 yield "Hi 👋🏻\nYou are an unregistered user.\nUse the `/pay` command to get started."
+            else:
+                logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
+                yield f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
 
-        # except UserNotRegistered as e:
         except Exception as e:
             logger.error(f"Error checking balance for {lud16}: {e}")
-            if os.getenv("DEBUG"):
+            if os.getenv("DEBUG"): # TODO: fix these... they need to behave when DEBUG=false / 0
                 # NOTE: hide the error message details from the user unless we're debugging!
                 error_message = f"There was an error checking your balance:\n`{e}`"
             else:
                 error_message = f"There was an error checking your balance."
 
-            #NOTE: we don't return a streaming response - anything yielded from a command will be streamed back to the user.
-            # return StreamingResponse(iter([error_message]), media_type="text/event-stream")
             yield error_message
 
 
@@ -90,17 +91,18 @@ def pay(request):
 
     try:
         split = request.user_message.split(" ")
-        first_arg = split[1] if len(split) > 1 else None
+        # first_arg = split[1] if len(split) > 1 else None
 
-        if first_arg:
-            requested_invoice_amount = int(first_arg)
-            if requested_invoice_amount < MINIMUM_INVOICE_AMOUNT:
-                return f"⚠️ The minimum invoice amount is {MINIMUM_INVOICE_AMOUNT} sats."
+        # if first_arg:
+        #     requested_invoice_amount = int(first_arg)
+        #     if requested_invoice_amount < MINIMUM_INVOICE_AMOUNT:
+        #         return f"⚠️ The minimum invoice amount is {MINIMUM_INVOICE_AMOUNT} sats."
 
-            if requested_invoice_amount > MAXIMUM_INVOICE_AMOUNT:
-                return f"⚠️ The maximum invoice amount is {MAXIMUM_INVOICE_AMOUNT} sats."
-        else:
-            requested_invoice_amount = DEFAULT_INVOICE_AMOUNT
+        #     if requested_invoice_amount > MAXIMUM_INVOICE_AMOUNT:
+        #         return f"⚠️ The maximum invoice amount is {MAXIMUM_INVOICE_AMOUNT} sats."
+        # else:
+        #     requested_invoice_amount = DEFAULT_INVOICE_AMOUNT
+        requested_invoice_amount = DEFAULT_INVOICE_AMOUNT
 
     except Exception as e:
         return f"⚠️ Please provide a valid invoice amount.\n\n**Example:**\n`\n/pay {DEFAULT_INVOICE_AMOUNT}\n`\n"
@@ -112,10 +114,22 @@ def pay(request):
         from .payment import get_invoice
         invoice = get_invoice(lud16=lud16, sats=requested_invoice_amount)
 
-        return f"""[Click to pay with Lightning ⚡️](lightning:{invoice['pr']})\n\n```json\n{invoice}\n```\n"""
-        # ln_link = f"lightning:{invoice['pr']}?amount={invoice['amount']}"
-        # return f"""[Click here to pay]({ln_link})\n\n```json\n{invoice}\n```\n"""
-        # return f"""<a href="lightning:{invoice['pr']}" target="_blank">Click to pay with Lightning ⚡️</a>"""
+        # return f"""[Click to pay with Lightning ⚡️](lightning:{invoice['pr']})\n\n```json\n{json.dumps(invoice, indent=4)}\n```\n"""
+        ret = f"""
+[Click to pay with Lightning ⚡️](lightning:{invoice['pr']})
+
+Invoice ID: `{invoice['_id']}`
+
+Amount: `{invoice['amount']}` sats
+
+```
+lightning:{invoice['pr']}
+```
+"""
+        return ret
+
+
+
 
 
 ############################################################################
@@ -215,19 +229,24 @@ def readability(request):
 
 
 command_list = [
+#NOTE:
+# first item is a list of keywords that will trigger the command
+# second item is the function that will be called when the command is triggered
+# third item is a description of the command (for the usage text)
+
     # STANDARD COMMANDS FOR EVERY AGENT
     [["hi"], hi, "Tell the bot to say hello to you."],
     [["version"], version, "Get the version of the agent"],
     [["info", "about"], about, "Get information about the agent"],
     [["usage", "help"], usage, "Get a list of commands"],
     [["draw"], draw, "Get the graph of the agent"],
+    [["long"], long, "Get a long message"],
+    [['whoami'], whoami, "Get your username"],
     [["debug"], debug, "Get debug information"],
-
 
     # PAYMENT COMMANDS
     [["bal"], balance, "Check the your token balance"],
     [["pay"], pay, "Request an invoice to top up your balance"],
-
 
     # CUSTOM COMMANDS TO THIS AGENT
     [["url"], url, "Scrape the URL and reply with the content"],

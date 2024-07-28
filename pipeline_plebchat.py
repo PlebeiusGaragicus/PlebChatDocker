@@ -27,8 +27,8 @@ class Pipeline:
         pass
 
     def __init__(self):
-        self.name = "Graph testing"
-        self.graph_name = "testing"
+        self.name = "PlebChat"
+        self.graph_name = "plebchat"
         # self.cost_per_token = 1
         self.chat_id = None
 

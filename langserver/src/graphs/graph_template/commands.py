@@ -1,6 +1,12 @@
-from src.BaseBot import BaseBot
+from src.BotCommandHandler import BotCommandHandler
 
-class CustomBot(BaseBot):
+class TestBot(BotCommandHandler):
+    graph_name: str = "graph_template" # This should match the "graph_name" set in this agent's pipeline module
+
+    def _get_graph(self):
+        from .graph.graph import graph
+        return graph
+
     def version(self, request, *args):
         """Get the version information for this graph."""
         from .VERSION import VERSION
@@ -9,13 +15,17 @@ class CustomBot(BaseBot):
 
     def hi(self, request, *args):
         """Tell the bot to say hello to you."""
-        return f"""#  🗣️🤖💬👀
-    
-👋 Hi there!  You must be the "`{request.body['user']['name']}`" I've heard so much about...
+        return f"""👋 Hi there!
 
-I'm `PlebChat`.  I'm just a simple chatbot agent.
+You must be the "`{request.body['user']['name']}`" I've heard so much about...
+
+I'm `{self.graph_name}`.  I'm just a simple chatbot agent.
 
 Type `/about` to learn more.
+
+Type `/help` to see a list of commands.
+
+Or, just start asking questions!  I'm here to help.
 """
 
 
@@ -28,7 +38,7 @@ I aim to be a useful assistant that anyone can use anonymously.
 
 There's a lot I can do with more features being added all the time!
 
-Try `/usage` for a list of commands.
+Try `/help` for a list of commands.
 
 Here's my [source code on GitHub](https://github.com/PlebeiusGaragicus/PlebChatDocker)
 
@@ -39,18 +49,10 @@ npub1xegedgkkjf24pl4d76cdwhufacng5hapzjnrtgms3pyhlvmyqj9suym08k
 ```
 """
 
-
-    def draw(self, request, *args):
-        from .graph.graph import GRAPH_ASCII
-        return f"```\n{GRAPH_ASCII}\n```"
-
-
-
-
 ####################################################################################
 # ADD CUSTOM COMMANDS BELOW
 ####################################################################################
-    # def url(self, request, *args):
-    #     """Scrape the URL and reply with the content."""
-    #     url = args[0] if args else "No URL provided"
-    #     return f"Scraping content from {url}"
+    # def something(self, request, *args):
+    #     """Do something with the provided arguments.  `/something <arg1> <arg2> ...`"""
+    #     a = args[0] if args else "no provided arguments"
+    #     return f"Doing something with {a}"

@@ -17,32 +17,22 @@ from fastapi.responses import StreamingResponse
 # from langserver.src.test_graph.commands import handle_commands
 from src.payment import get_user_balance
 
-#NOTE: adjust the endpoint in the pipeline module!
-# from pipeline import PIPELINE_ENDPOINT
-PIPELINE_ENDPOINT = "/langserver"
 
 
 app = FastAPI()
-logger.debug("app is built!")
 
 
+from src.graphs.graph_template.commands import TestBot
+from src.graphs.plebchat.commands import PlebChat
+all_graphs = [TestBot, PlebChat]
 
 
 def return_graph(graph_name: str):
-    if graph_name == "testing":
-        from src.test_graph.graph.graph import graph
-        return graph
-
+    for graph in all_graphs:
+        if graph_name == graph.graph_name:
+            return graph()._get_graph()
 
     raise NotImplementedError(f"Graph {graph_name} is not implemented.")
-
-
-# def return_bot_commands(request):
-#     if request == "testing":
-#         from src.test_graph.commands import CustomBot
-#         return CustomBot()._handle_command(request)
-
-#     raise NotImplementedError(f"Command {command} is not implemented.")
 
 
 
@@ -54,37 +44,32 @@ class PostRequest(BaseModel):
     body: dict
 
 
-# def handle_generic_commands(request: PostRequest):
-#     logger.warning("User NOT running a generic command")
-#     return None
-
-
-#TODO: fix this endpoint name
+#NOTE: adjust the endpoint in the pipeline module!
+# from pipeline import PIPELINE_ENDPOINT
+# nvm we can't do that
+PIPELINE_ENDPOINT = "/langserver"
 @app.post(PIPELINE_ENDPOINT)
 async def main(request: PostRequest):
+
 
     ########################################
     # CHECK IF THE USER IS RUNNING A COMMAND
     if request.user_message.startswith("/"):
-
-        if request.body['graph_name'] == 'testing':
-            from src.test_graph.commands import CustomBot
-            ret = CustomBot()._handle_command(request=request)
-        else:
-            ret = "Your bot doesn't have any commands implemented."
+        for graph in all_graphs:
+            if request.body['graph_name'] == graph.graph_name:
+                ret = graph()._handle_command(request=request)
+                break
 
         return StreamingResponse(ret, media_type="text/event-stream")
 
 
-    ###############
+    ########################################
     # CHECK BALANCE
-    # user_balance = assure_positive_balance(request.body['user']['email'])
-
     try:
         user_balance = get_user_balance(lud16=request.body['user']['email'])
         user_balance = user_balance['balance']
-        # logger.critical(user_balance)
-    # except UserNotRegistered as e:
+        logger.debug(f"User balance: {user_balance}")
+
     except Exception as e:
         if os.getenv("DEBUG", None):
             # NOTE: hide the error message details from the user unless we're debugging!
@@ -100,7 +85,8 @@ async def main(request: PostRequest):
 
 
     else:
-        # INVOKE THE GRAPH HERE #######################
+        #####################################
+        # INVOKE THE GRAPH
         async def event_stream():
             graph_input = {
                 "messages": [request.messages[-1]],
@@ -108,15 +94,16 @@ async def main(request: PostRequest):
             }
 
             config = {"configurable": {
-                "lud16": request.body['user']['email']
+                "lud16": request.body['user']['email'],
+                "thread_id": request.body['chat_id'],
             }}
 
-            # from src.test_graph.graph import graph
-            # TODO - pick a different graph based on the body (the pipeline should inject the graph name)
-
+            graph = return_graph(request.body['graph_name'])
 
             # async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
-            async for event in return_graph(request.body['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
+            # async for event in return_graph(request.body['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
+            async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
+
                 kind = event["event"]
                 if  kind == "on_chat_model_stream" or kind=="on_chain_stream":
                     content = event["data"]["chunk"]
@@ -137,8 +124,8 @@ async def main(request: PostRequest):
 
 # body: dict
 # {
-#     "stream": true,                   # ignore this...
-#     "model": "pipeline_template",     # pipeline python filename?
+#     "stream": true,                   # NOTE: we ignore this...
+#     "model": "pipeline_template",     # pipeline python filename
 #     "messages": [
 #         {
 #             "role": "user",

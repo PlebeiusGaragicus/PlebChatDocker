@@ -4,10 +4,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from .config import DEFAULT_INVOICE_AMOUNT, MINIMUM_INVOICE_AMOUNT, MAXIMUM_INVOICE_AMOUNT
+from .payment import DEFAULT_INVOICE_AMOUNT, MINIMUM_INVOICE_AMOUNT, MAXIMUM_INVOICE_AMOUNT
 
 
-class BaseBot:    
+class BotCommandHandler:
     def _handle_command(self, request):
         split = request.user_message.split(" ")
         command = split[0][1:].lower()  # Remove the slash and take the first word
@@ -22,41 +22,45 @@ class BaseBot:
         else:
             return f"""# ⛓️‍💥\n`/{command}` command not found!\n## Commands available:\n{self.help(request)}"""
 
-####################################################################################
-####################################################################################
-####################################################################################
-
     def help(self, request, *args):
         """Get a list of commands."""
         # Generate usage text from available methods with a docstring
         command_list = [
-            method for method in dir(self) 
+            method for method in dir(self)
             if callable(getattr(self, method)) and not method.startswith("__") and not method.startswith("_")
         ]
-        return "\n".join(
-            f"/{cmd} - {getattr(self, cmd).__doc__}" for cmd in command_list
-        )
+        return "\n".join(f"/{cmd} - {getattr(self, cmd).__doc__}" for cmd in command_list)
 
     def whoami(self, request, *args):
         """Get your username."""
-        if os.getenv('DEBUG', False):
+        if request.body['user']['role'] == 'admin' or os.getenv('DEBUG', False):
             user = request.body['user']
             return f"""```\n{json.dumps(user, indent=4)}\n```"""
         else:
             username = request.body['user']['email']
             return f"Your username is: `{username}`"
 
-
     def debug(self, request, *args):
         """Get debug information."""
-        if os.getenv('DEBUG', False):
+        if request.body['user']['role'] == 'admin' or os.getenv('DEBUG', False):
             return f"'DEBUG' environment variable: `{os.getenv('DEBUG')}`\n\n**body:**\n```json\n{json.dumps(request.body, indent=4)}\n```"
         else:
             return "Debug mode is disabled."
 
+    def draw(self, request, *args):
+        graph_ascii = self._get_graph().get_graph().draw_ascii()
+        return f"```\n{graph_ascii}\n```"
+
+    def cuss(self, request, *args):
+        """Let off some steam."""
+        return "fuck\n\nteehee"
+
 ####################################################################################
+#### YOUR CUSTOM GRAPH AGENTS MUST IMPLEMENT THE FOLLOWING METHODS #################
 ####################################################################################
-####################################################################################
+    def _get_graph(self):
+        raise NotImplementedError("Your bot must implement this function!")
+
     def version(self, request, *args):
         raise NotImplementedError("Your bot must implement this function!")
 
@@ -66,15 +70,9 @@ class BaseBot:
     def about(self, request, *args):
         raise NotImplementedError("Your bot must implement this function!")
 
-    def draw(self, request, *args):
-        raise NotImplementedError("Your bot must implement this function!")
-
-    def cuss(self, request, *args):
-        """Let off some steam."""
-        return "fuck\n\nteehee"
 
 ####################################################################################
-####################################################################################
+######### BITCOIN LIGHTNING PAYMENT, INVOICING, AND USAGE METHODS ##################
 ####################################################################################
     def bal(self, request, *args):
         """Check your token balance."""
@@ -149,7 +147,7 @@ lightning:{invoice['pr']}
 ####################################################################################
 
     def usage(self, request, *args):
-        """Track your token usage for the last `n` days with `/usage n`."""
+        """Track your token usage for the last `n` days with "`/usage n`\""""
         return "This feature is not yet implemented."
 
 

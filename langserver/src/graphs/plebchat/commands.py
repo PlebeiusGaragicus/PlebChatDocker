@@ -1,6 +1,12 @@
-from src.BaseBot import BaseBot
+from src.BotCommandHandler import BotCommandHandler
 
-class CustomBot(BaseBot):
+class PlebChat(BotCommandHandler):
+    graph_name: str = "plebchat" # This should match the "graph_name" set in this agent's pipeline module
+
+    def _get_graph(self):
+        from .graph.graph import graph
+        return graph
+
     def version(self, request, *args):
         """Get the version information for this graph."""
         from .VERSION import VERSION
@@ -28,7 +34,7 @@ I aim to be a useful assistant that anyone can use anonymously.
 
 There's a lot I can do with more features being added all the time!
 
-Try `/usage` for a list of commands.
+Try `/help` for a list of commands.
 
 Here's my [source code on GitHub](https://github.com/PlebeiusGaragicus/PlebChatDocker)
 
@@ -38,8 +44,3 @@ Send me a message on nostr to chat about issues, features you'd like to see or a
 npub1xegedgkkjf24pl4d76cdwhufacng5hapzjnrtgms3pyhlvmyqj9suym08k
 ```
 """
-
-
-    def draw(self, request, *args):
-        from .graph.graph import GRAPH_ASCII
-        return f"```\n{GRAPH_ASCII}\n```"

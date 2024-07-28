@@ -1,10 +1,4 @@
-import os
-import json
-import logging
-logger = logging.getLogger(__name__)
-
 from src.BaseBot import BaseBot
-
 
 class CustomBot(BaseBot):
     def version(self, request, *args):
@@ -54,14 +48,9 @@ npub1xegedgkkjf24pl4d76cdwhufacng5hapzjnrtgms3pyhlvmyqj9suym08k
 
 
 ####################################################################################
-
-
-    def url(self, request, *args):
-        """Scrape the URL and reply with the content."""
-        url = args[0] if args else "No URL provided"
-        return f"Scraping content from {url}"
-
-    def readability(self, request, *args):
-        """Scrape a URL and return the article."""
-        url = args[0] if args else "No URL provided"
-        return f"Returning article from {url}"
+# ADD CUSTOM COMMANDS BELOW
+####################################################################################
+    # def url(self, request, *args):
+    #     """Scrape the URL and reply with the content."""
+    #     url = args[0] if args else "No URL provided"
+    #     return f"Scraping content from {url}"

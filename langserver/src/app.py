@@ -30,18 +30,19 @@ logger.debug("app is built!")
 
 def return_graph(graph_name: str):
     if graph_name == "testing":
-        from src.test_graph.graph import graph
+        from src.test_graph.graph.graph import graph
         return graph
+
 
     raise NotImplementedError(f"Graph {graph_name} is not implemented.")
 
 
-def return_bot_commands(request):
-    if request == "testing":
-        from src.test_graph.commands import CustomBot
-        return CustomBot()._handle_command(request)
+# def return_bot_commands(request):
+#     if request == "testing":
+#         from src.test_graph.commands import CustomBot
+#         return CustomBot()._handle_command(request)
 
-    raise NotImplementedError(f"Command {command} is not implemented.")
+#     raise NotImplementedError(f"Command {command} is not implemented.")
 
 
 
@@ -115,7 +116,7 @@ async def main(request: PostRequest):
 
 
             # async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
-            async for event in return_graph(request['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
+            async for event in return_graph(request.body['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
                 kind = event["event"]
                 if  kind == "on_chat_model_stream" or kind=="on_chain_stream":
                     content = event["data"]["chunk"]

@@ -105,6 +105,7 @@ class BaseBot:
                 yield error_message
 
 
+####################################################################################
 
     def pay(self, request, *args):
         """Request an invoice to top up your balance."""
@@ -132,9 +133,7 @@ class BaseBot:
         else:
             from .payment import get_invoice
             invoice = get_invoice(lud16=lud16, sats=requested_invoice_amount)
-
-            # return f"""[Click to pay with Lightning ⚡️](lightning:{invoice['pr']})\n\n```json\n{json.dumps(invoice, indent=4)}\n```\n"""
-            ret = f"""
+            return f"""
 [Click to pay with Lightning ⚡️](lightning:{invoice['pr']})
 
 Invoice ID: `{invoice['_id']}`
@@ -145,9 +144,9 @@ Amount: `{invoice['amount']}` sats
 lightning:{invoice['pr']}
 ```
 """
-            return ret
 
 
+####################################################################################
 
     def usage(self, request, *args):
         """Track your token usage for the last `n` days with `/usage n`."""
@@ -156,44 +155,14 @@ lightning:{invoice['pr']}
 
 
 
+####################################################################################
+####################################################################################
+####################################################################################
 
-
-
-
-
-
-
-# ############################################################################
-# def url(request):
-#     split = request.user_message.split(" ")
-#     first_arg = split[1] if len(split) > 1 else None
-
-#     if not first_arg:
-#         return "⚠️ Please provide a URL.\n\n**Example:**\n```\n/url https://example.com\n```"
-
-#     if first_arg.startswith("http://"):
-#         return f"⚠️ The URL must start with `https://`\n\n**Example:**\n```\n/url https://example.com\n```"
-
-#     if not first_arg.startswith("https://"):
-#         first_arg = f"https://{first_arg}"
-
-#     return f"""
-# This command will scrape the provided url and reply with the "readability" text.
-
-# This way, the contents of the url can be injected into the context of the conversation and can be discussed, summariezed, etc.
-
-# This is a placeholder for the implementation of the url command.
-
-# The URL you provided is: {first_arg}
-
-# [Click here to view the content of the URL]({first_arg})
-
-# The content of the URL will be displayed here.
-# """
-# #NOTE: providing just the url link like so:
-# # [Click here to view the content of the URL]({first_arg})
-# # will prepend the base url/c/ so that we can link TO CONVERSATIONS!!! WOW!
-
+    def read(self, request, *args):
+        """Scrape a URL and return the article."""
+        url = args[0] if args else "No URL provided"
+        return f"Returning article from {url}"
 
 
 # def readability(request):
@@ -241,3 +210,44 @@ lightning:{invoice['pr']}
 
 # #     except Exception as e:
 # #         return f"""error in scraping this URL: {e}"""
+
+
+
+
+# ############################################################################
+    def url(self, request, *args):
+        """Scrape the URL and reply with the content."""
+        url = args[0] if args else "No URL provided"
+        return f"Scraping content from {url}"
+
+
+# def url(request):
+#     split = request.user_message.split(" ")
+#     first_arg = split[1] if len(split) > 1 else None
+
+#     if not first_arg:
+#         return "⚠️ Please provide a URL.\n\n**Example:**\n```\n/url https://example.com\n```"
+
+#     if first_arg.startswith("http://"):
+#         return f"⚠️ The URL must start with `https://`\n\n**Example:**\n```\n/url https://example.com\n```"
+
+#     if not first_arg.startswith("https://"):
+#         first_arg = f"https://{first_arg}"
+
+#     return f"""
+# This command will scrape the provided url and reply with the "readability" text.
+
+# This way, the contents of the url can be injected into the context of the conversation and can be discussed, summariezed, etc.
+
+# This is a placeholder for the implementation of the url command.
+
+# The URL you provided is: {first_arg}
+
+# [Click here to view the content of the URL]({first_arg})
+
+# The content of the URL will be displayed here.
+# """
+# #NOTE: providing just the url link like so:
+# # [Click here to view the content of the URL]({first_arg})
+# # will prepend the base url/c/ so that we can link TO CONVERSATIONS!!! WOW!
+

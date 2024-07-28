@@ -1,7 +1,7 @@
 from langgraph.graph import StateGraph, START, END
 
-from src.graph import State
-from src.graph.node import chatbot
+from src.test_graph.graph import State
+from src.test_graph.graph.node import chatbot
 
 
 graph_builder = StateGraph(State)

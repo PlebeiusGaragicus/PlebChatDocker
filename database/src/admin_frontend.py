@@ -1,4 +1,6 @@
 import os
+import json
+import datetime
 from logger import logger
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -41,6 +43,15 @@ async def main():
     # Set up Streamlit layout and title
     st.title("Admin Dashboard")
 
+    st.header("PR decoder")
+    pr = st.text_input("Enter PR code")
+    if st.button("Decode PR"):
+        import bolt11
+        decoded = bolt11.decode(pr)
+        st.json( json.dumps(decoded.data, indent=4) )
+        st.write(f"Has expired: `{decoded.has_expired()}`")
+        st.write(f"Expires at: `{decoded.expiry_date}`")
+        st.write(f"Time until expiry: `{decoded.expiry_date - datetime.datetime.now()}` hours")
 
     st.header("All Users")
     user_collection = db.db.get_collection("users")

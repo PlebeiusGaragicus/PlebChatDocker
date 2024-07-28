@@ -12,19 +12,38 @@ from typing import List
 from pydantic import BaseModel
 
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, PlainTextResponse
+from fastapi.responses import StreamingResponse
 
-from src.graph.graph import graph
-from src.commands import handle_commands
+# from langserver.src.test_graph.commands import handle_commands
 from src.payment import get_user_balance
 
 #NOTE: adjust the endpoint in the pipeline module!
 # from pipeline import PIPELINE_ENDPOINT
-PIPELINE_ENDPOINT = "/template"
+PIPELINE_ENDPOINT = "/langserver"
 
 
 app = FastAPI()
 logger.debug("app is built!")
+
+
+
+
+def return_graph(graph_name: str):
+    if graph_name == "testing":
+        from src.test_graph.graph import graph
+        return graph
+
+    raise NotImplementedError(f"Graph {graph_name} is not implemented.")
+
+
+def return_bot_commands(request):
+    if request == "testing":
+        from src.test_graph.commands import CustomBot
+        return CustomBot()._handle_command(request)
+
+    raise NotImplementedError(f"Command {command} is not implemented.")
+
+
 
 
 # This is the data that the client (pipeline) sends to us
@@ -34,6 +53,10 @@ class PostRequest(BaseModel):
     body: dict
 
 
+# def handle_generic_commands(request: PostRequest):
+#     logger.warning("User NOT running a generic command")
+#     return None
+
 
 #TODO: fix this endpoint name
 @app.post(PIPELINE_ENDPOINT)
@@ -42,9 +65,14 @@ async def main(request: PostRequest):
     ########################################
     # CHECK IF THE USER IS RUNNING A COMMAND
     if request.user_message.startswith("/"):
-        def call_command():
-            return handle_commands(request)
-        return StreamingResponse(call_command(), media_type="text/event-stream")
+
+        if request.body['graph_name'] == 'testing':
+            from src.test_graph.commands import CustomBot
+            ret = CustomBot()._handle_command(request=request)
+        else:
+            ret = "Your bot doesn't have any commands implemented."
+
+        return StreamingResponse(ret, media_type="text/event-stream")
 
 
     ###############
@@ -69,13 +97,9 @@ async def main(request: PostRequest):
         # TODO - say the user's name and tell them something nicer
         return StreamingResponse(iter(["Insufficient balance. Please top up your account."]), media_type="text/event-stream")
 
-        # NOTE: This doesn't work... it still streams slowly WTF!?!
-        # return PlainTextResponse(iter(["Insufficient balance. Please top up your account."]), media_type="text/plain")
+
     else:
-
-
-        #######################
-        # INVOKE THE GRAPH HERE
+        # INVOKE THE GRAPH HERE #######################
         async def event_stream():
             graph_input = {
                 "messages": [request.messages[-1]],
@@ -86,7 +110,12 @@ async def main(request: PostRequest):
                 "lud16": request.body['user']['email']
             }}
 
-            async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
+            # from src.test_graph.graph import graph
+            # TODO - pick a different graph based on the body (the pipeline should inject the graph name)
+
+
+            # async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
+            async for event in return_graph(request['graph_name']).astream_events(input=graph_input, config=config, version="v2"):
                 kind = event["event"]
                 if  kind == "on_chat_model_stream" or kind=="on_chain_stream":
                     content = event["data"]["chunk"]

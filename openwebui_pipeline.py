@@ -10,10 +10,9 @@ except Exception:
 
 
 
-PORT = 8513
-PIPELINE_ENDPOINT = "/template"
-CONSTRUCT_NAME = "LangGraph Template"
 LANGSERVE_ENDPOINT = f"http://host.docker.internal"
+PORT = 8513
+PIPELINE_ENDPOINT = "/langserver"
 
 
 class PostRequest(TypedDict):
@@ -28,13 +27,16 @@ class Pipeline:
         pass
 
     def __init__(self):
-        self.name = CONSTRUCT_NAME
+        self.name = "Graph testing"
+        self.graph_name = "testing"
+        # self.cost_per_token = 1
         self.chat_id = None
 
+
     async def inlet(self, body: dict, user: Optional[dict] = None) -> dict:
-        # print(f"inlet:{__name__}")
-        # print(f"user: {user}")
-        # print(f"body: {body}")
+        print(f"inlet:{__name__}")
+        print(f"user: {user}")
+        print(f"body: {body}")
 
         # Store the chat_id from body
         self.chat_id = body.get("chat_id")
@@ -55,9 +57,7 @@ class Pipeline:
              ) -> Union[str, Generator, Iterator]:
 
         if body.get("task") == "Title Generation":
-            print("######################################")
-            print("Title Generation")
-            print("######################################")
+            print("################# Title Generation #################")
             yield "Test Pipeline"
         else:
 
@@ -73,7 +73,6 @@ class Pipeline:
             print(f"{json.dumps(body, indent=4)}")
             print("######################################")
 
-            #TODO: title generation?
 
             url = f"{LANGSERVE_ENDPOINT}:{PORT}{PIPELINE_ENDPOINT}"
             headers = {
@@ -82,8 +81,21 @@ class Pipeline:
             }
 
             body['chat_id'] = self.chat_id
+            body['graph_name'] = self.graph_name
             req = PostRequest(user_message=user_message, messages=messages, body=body)
-            response = requests.post(url, json=req, headers=headers, stream=True)
-            for line in response.iter_lines():
-                if line:
-                    yield line.decode() + '\n'
+
+            try:
+                response = requests.post(url, json=req, headers=headers, stream=True)
+                response.raise_for_status()
+
+                for line in response.iter_lines():
+                    if line:
+                        yield line.decode() + '\n'
+
+            except Exception as e:
+            # except requests.exceptions.RequestException as e:
+                # print(f"Exception: {e}")
+                # TODO: log here
+                # TODO: give an ALERT to the system admin!
+                # yield f"""Error: {e}"""
+                yield f"""⛓️‍💥 uh oh!\nSomething broke.\nThe server may be down."""

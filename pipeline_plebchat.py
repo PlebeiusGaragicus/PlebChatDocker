@@ -9,10 +9,22 @@ except Exception:
     from pydantic import BaseModel
 
 
+########################################################################
+# This is shown in the UI to the user
+AGENT_NAME = "PlebChat"
 
+# This is used to identify the approprate graph in the Langserver
+# NOTE: This must match exactly with the graph_name variable in your inherited BotCommandHandler class!
+GRAPH_NAME = "plebchat"
+
+# Settings for this pipeline
+HARD_DISABLE_TITLE_GENERATION = False
+
+# Langserver endpoint
 LANGSERVE_ENDPOINT = f"http://host.docker.internal"
 PORT = 8513
 PIPELINE_ENDPOINT = "/langserver"
+########################################################################
 
 
 class PostRequest(TypedDict):
@@ -21,15 +33,13 @@ class PostRequest(TypedDict):
     body: dict
 
 
-
 class Pipeline:
     class Valves(BaseModel):
         pass
 
     def __init__(self):
-        self.name = "PlebChat"
-        self.graph_name = "plebchat"
-        # self.cost_per_token = 1
+        self.name = AGENT_NAME
+        self.graph_name = GRAPH_NAME
         self.chat_id = None
 
 
@@ -38,6 +48,10 @@ class Pipeline:
         print(f"user: {user}")
         print(f"body: {body}")
 
+        if body.get("task") == "title_generation":
+            print("################# Title Generation #################")
+            body['ignore'] = True
+
         # Store the chat_id from body
         self.chat_id = body.get("chat_id")
         print(f"Stored chat_id: {self.chat_id}")
@@ -45,20 +59,20 @@ class Pipeline:
         return body
 
 
-    async def on_startup(self):
-        print(f">>> PIPELINE {self.name.upper()} IS STARTING!!! <<<")
+    # async def on_startup(self):
+    #     print(f">>> PIPELINE {self.name.upper()} IS STARTING!!! <<<")
 
-
-    async def on_shutdown(self):
-        print(f">>> PIPELINE {self.name.upper()} IS SHUTTING DOWN!!! <<<")
+    # async def on_shutdown(self):
+    #     print(f">>> PIPELINE {self.name.upper()} IS SHUTTING DOWN!!! <<<")
 
 
     def pipe(self, user_message: str, model_id: str, messages: List[dict], body: dict
              ) -> Union[str, Generator, Iterator]:
 
-        if body.get("task") == "Title Generation":
+        if body.get("task") == "title_generation" and not HARD_DISABLE_TITLE_GENERATION:
             print("################# Title Generation #################")
-            yield "Test Pipeline"
+            yield f"Pipeline {self.name}"
+
         else:
 
             print(f">>> PIPELINE '{self.name.upper()}' RUNNING <<<")
@@ -94,8 +108,5 @@ class Pipeline:
 
             except Exception as e:
             # except requests.exceptions.RequestException as e:
-                # print(f"Exception: {e}")
-                # TODO: log here
                 # TODO: give an ALERT to the system admin!
-                # yield f"""Error: {e}"""
                 yield f"""⛓️‍💥 uh oh!\nSomething broke.\nThe server may be down."""

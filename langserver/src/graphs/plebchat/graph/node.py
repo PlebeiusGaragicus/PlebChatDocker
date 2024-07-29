@@ -1,35 +1,30 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama
 from langchain_core.chat_history import AIMessage, BaseMessage
 
-# from src.payment import deduct_with_usage
 from src.graphs.plebchat.graph import State
+from src.usage import deduct_usage
 
-from src.usage import deduct_with_usage
 
 
 def plebchat(state: State, config: RunnableConfig):
-    if not config['configurable'].get('is_admin', False):
-        deduct_with_usage(configurable=config['configurable'], tokens_used=1)
-
+    logger.debug(f"plebchat node called with state: {state}")
 
     MODEL = "phi3:latest"
-    llm = ChatOllama(model=MODEL,
-                     keep_alive="-1" # Keep the model alive indefinitely
-        )
+    llm = ChatOllama(
+                model=MODEL,
+                # Keep the model alive indefinitely
+                keep_alive="-1"
+            )
 
+    # r = llm.invoke(state["query"])
     r = llm.invoke(state["messages"])
+    logger.debug(f"Ollama response: {r}")
 
-    return {"messages": [r]}
+    deduct_usage(config, r.usage_metadata)
 
-    # resp = {
-    #     "role": "assistant",
-    #     "content": "hi"
-    # }
-
-    # return {"messages": [resp]}
-    # return {"messages": [AIMessage("hi")]}
-    # return {"messages": [{
-    #                 "role": "assistant",
-    #                 "content": "hi"
-    #         }]}
+    # return {"messages": [r]}
+    return {"output": r}

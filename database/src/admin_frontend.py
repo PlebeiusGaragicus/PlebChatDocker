@@ -43,6 +43,38 @@ async def main():
     # Set up Streamlit layout and title
     st.title("Admin Dashboard")
 
+# OpenAI
+# GPT-4o
+#       $0.0050 / 1K input tokens
+#       $0.0150 / 1K output tokens
+
+# gpt-4-turbo
+#       $0.0100 / 1K INPUT tokens
+#       $0.0300 / 1K OUTPUT tokens
+
+# gpt-3.5-turbo-16k-0613
+#       $0.0030 / 1K INPUT tokens
+#       $0.0040 / 1K OUTPUT tokens
+
+# mixtral 8x7b
+#       $0.00071 per / 1000 (INPUT AND OUTPUT)
+
+# mistral 7b
+#       $0.00022 per / 1000 (INPUT AND OUTPUT)
+
+
+    st.header("tokens per dollar calculation")
+    # enter in the price per 1000 tokens and the price of bitcoin and calculate the satoshi price per 1000 tokens
+    price_per_10000_tokens = st.number_input("Enter price per 10K tokens", value=0.05)
+    price_of_bitcoin = st.number_input("Enter price of bitcoin", value=68000)
+    ans = price_per_10000_tokens * 100_000_000 / price_of_bitcoin
+    st.write(f"Price per 10K tokens in satoshis: {ans}")
+
+
+
+
+
+
     st.header("PR decoder")
     pr = st.text_input("Enter PR code")
     if st.button("Decode PR"):
@@ -65,6 +97,12 @@ async def main():
             st.write("Deleted user")
             break
 
+    st.header("Set a user's balance")
+    user_to_adjust = st.selectbox("Select a user", [user["username"] for user in users])
+    new_balance = st.number_input("Enter new balance")
+    if st.button("Set balance"):
+        await user_collection.update_one({"username": user_to_adjust}, {"$set": {"balance": new_balance}})
+        st.write("Updated user balance")
 
 
     st.header("All Invoices")
@@ -80,6 +118,18 @@ async def main():
             st.write("Deleted invoice")
             break
 
+    st.header("All Transactions")
+    transactions_collection = db.db.get_collection("transactions")
+    transactions = await transactions_collection.find().to_list(length=None)
+    # st.write(transactions)
+    # show as a table with a delete button
+    for transaction in transactions:
+        st.write(transaction)
+        st.markdown(f"[View thread](http://localhost:3000/s/{transaction['thread_id']})")
+        if st.button("Delete", key=transaction["_id"]):
+            await transactions_collection.delete_one({"_id": transaction["_id"]})
+            st.write("Deleted transaction")
+            break
 
     await close_mongo_connection()
 

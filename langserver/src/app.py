@@ -91,14 +91,16 @@ async def main(request: PostRequest):
     # INVOKE THE GRAPH
     async def event_stream():
         graph_input = {
-            "messages": [request.messages[-1]],
-            "lud16": request.body['user']['email']
+            # "query": request.user_message,
+            # "messages": request.messages[:-1],
+            "messages": request.messages,
         }
 
         config = {"configurable": {
             "is_admin": is_admin,
             "lud16": request.body['user']['email'],
-            "thread_id": request.body['chat_id'],
+            # "thread_id": request.body['chat_id'], # refer to usage.py's deduct_with_usage() for why this is commented out
+            "chat_id": request.body['chat_id'],
         }}
 
         graph = return_graph(request.body['graph_name'])

@@ -119,17 +119,18 @@ async def main():
             break
 
     st.header("All Transactions")
-    transactions_collection = db.db.get_collection("transactions")
-    transactions = await transactions_collection.find().to_list(length=None)
-    # st.write(transactions)
-    # show as a table with a delete button
-    for transaction in transactions:
-        st.write(transaction)
-        st.markdown(f"[View thread](http://localhost:3000/s/{transaction['thread_id']})")
-        if st.button("Delete", key=transaction["_id"]):
-            await transactions_collection.delete_one({"_id": transaction["_id"]})
-            st.write("Deleted transaction")
-            break
+    with st.expander("show"):
+        transactions_collection = db.db.get_collection("transactions")
+        transactions = await transactions_collection.find().to_list(length=None)
+        # st.write(transactions)
+        # show as a table with a delete button
+        for transaction in transactions:
+            st.write(transaction)
+            st.markdown(f"[View thread](http://localhost:3000/s/{transaction['thread_id']})")
+            if st.button("Delete", key=transaction["_id"]):
+                await transactions_collection.delete_one({"_id": transaction["_id"]})
+                st.write("Deleted transaction")
+                break
 
     await close_mongo_connection()
 

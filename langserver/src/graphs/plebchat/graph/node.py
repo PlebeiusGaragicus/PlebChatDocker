@@ -13,7 +13,8 @@ from src.usage import deduct_usage
 def plebchat(state: State, config: RunnableConfig):
     logger.debug(f"plebchat node called with state: {state}")
 
-    MODEL = "phi3:latest"
+    # MODEL = "phi3:latest"
+    MODEL = "llama3.1"
     llm = ChatOllama(
                 model=MODEL,
                 # Keep the model alive indefinitely
@@ -26,5 +27,4 @@ def plebchat(state: State, config: RunnableConfig):
 
     deduct_usage(config, r.usage_metadata)
 
-    # return {"messages": [r]}
-    return {"output": r}
+    return {"messages": [r]}

@@ -45,8 +45,9 @@ def get_user_balance(lud16: str) -> Optional[None]:
 
 
 
-def get_invoice(lud16: str, sats: int):
-    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/invoice/", json={"username": lud16, "invoice_amount": sats})
+def get_invoice(lud16: str):
+    # response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/invoice/", json={"username": lud16, "tokens_requested": tokens_requested})
+    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/invoice/", json={"username": lud16})
 
     if response.status_code == 200:
         invoice = response.json()
@@ -61,3 +62,14 @@ def get_invoice(lud16: str, sats: int):
         logger.critical(f"Error getting invoice: {response.status_code} {response.text}")
         raise Exception(f"Error getting invoice: {response.status_code} {response.text}")
 
+
+def get_usage(username: str, thread_id: str):
+    response = requests.get(f"{DATABASE_API_URL}:{DATABASE_API_PORT}/tx/", json={"username": username, "thread_id": thread_id})
+
+    if response.status_code == 200:
+        usage = response.json()
+        logger.debug(f"get_usage returning: {usage}")
+        return usage
+    else:
+        logger.critical(f"Error getting usage: {response.status_code} {response.text}")
+        return None

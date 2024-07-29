@@ -24,15 +24,18 @@ app = FastAPI()
 
 from src.graphs.graph_template.commands import TestBot
 from src.graphs.plebchat.commands import PlebChat
-all_graphs = [TestBot, PlebChat]
+ALL_CONSTRUCTS = [TestBot, PlebChat]
 
 
-def return_graph(graph_name: str):
-    for graph in all_graphs:
+def get_construct(graph_name: str):
+    for graph in ALL_CONSTRUCTS:
         if graph_name == graph.graph_name:
-            return graph()._get_graph()
+            # return graph()._get_graph()
+            return graph()
 
     raise NotImplementedError(f"Graph {graph_name} is not implemented.")
+
+
 
 
 
@@ -51,16 +54,18 @@ PIPELINE_ENDPOINT = "/langserver"
 @app.post(PIPELINE_ENDPOINT)
 async def main(request: PostRequest):
 
+    construct = get_construct(request.body['graph_name'])
+
 
     ########################################
     # CHECK IF THE USER IS RUNNING A COMMAND
     if request.user_message.startswith("/"):
-        for graph in all_graphs:
-            if request.body['graph_name'] == graph.graph_name:
-                ret = graph()._handle_command(request=request)
-                break
-
-        return StreamingResponse(ret, media_type="text/event-stream")
+        # for graph in ALL_CONSTRUCTS:
+        #     if request.body['graph_name'] == graph.graph_name:
+        #         ret = graph()._handle_command(request=request)
+        #         break
+        command_output = construct._handle_command(request=request)
+        return StreamingResponse(command_output, media_type="text/event-stream")
 
 
     ########################################
@@ -81,8 +86,18 @@ async def main(request: PostRequest):
 
             return StreamingResponse(iter([error_message]), media_type="text/event-stream")
 
+        if user_balance is None:
+            # command_output = construct.buy(request=request)
+            command_output = construct.bal(request=request) # /bal gives a good message when you're a new unregistered user
+            return StreamingResponse(command_output, media_type="text/event-stream")
+            # return StreamingResponse(iter(["Your token balance has run out - pay for more tokens by typing '/pay'."]), media_type="text/event-stream")
 
-        if user_balance is None or user_balance < 0:
+        ########################################
+        # check if the user says 'hi'
+        if request.user_message.lower() == 'hi':
+            return StreamingResponse(construct.hi(request=request), media_type="text/event-stream")
+
+        if user_balance < 0:
             # TODO - say the user's name and tell them something nicer
             return StreamingResponse(iter(["Your token balance has run out - pay for more tokens by typing '/pay'."]), media_type="text/event-stream")
 
@@ -103,7 +118,8 @@ async def main(request: PostRequest):
             "chat_id": request.body['chat_id'],
         }}
 
-        graph = return_graph(request.body['graph_name'])
+        # graph = return_graph(request.body['graph_name'])
+        graph = construct._get_computable_graph()
 
         # async for event in graph.astream_events(input=graph_input, config=config, version="v2"):
         # async for event in return_graph(request.body['graph_name']).astream_events(input=graph_input, config=config, version="v2"):

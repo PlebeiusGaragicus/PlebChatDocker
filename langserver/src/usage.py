@@ -1,3 +1,4 @@
+import math
 import logging
 logger = logging.getLogger(__name__)
 import requests
@@ -16,7 +17,7 @@ def deduct_with_usage(configurable: dict, tokens_used: int):
     payload = {
         "username": lud16,
         "thread_id": thread_id,
-        "tokens_used": tokens_used
+        "tokens_used": math.ceil(tokens_used)
     }
 
     response = requests.put(url, json=payload)
@@ -27,12 +28,15 @@ def deduct_with_usage(configurable: dict, tokens_used: int):
 
 
 
-def deduct_usage(config: dict, usage_metadata: dict):
+def deduct_usage(config: dict, usage_metadata: dict, OpenAIPricingModel: bool = False):
     i = usage_metadata['input_tokens']
     o = usage_metadata['output_tokens']
 
     if not config['configurable'].get('is_admin', False):
-        deduct_with_usage(configurable=config['configurable'], tokens_used=(i + o * 3))
+        if OpenAIPricingModel:
+            deduct_with_usage(configurable=config['configurable'], tokens_used=(i + o * 3))
+        else:
+            deduct_with_usage(configurable=config['configurable'], tokens_used=(i + o * 1.5))
 
 
 

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from src.logger import logger
 from src.database import db
-from src.models import UsageDeducation, UsageRecord, InvoiceRequest, TransactionRequest
+from src.models import UsageDeducation, UsageRecord, InvoiceRequest, UsageRequest
 from src.payment import return_user_balance, create_invoice, poll_pending_invoices, get_single_pending_invoice
 
 router = APIRouter()
@@ -28,8 +28,10 @@ async def get_invoice(request: InvoiceRequest):
     logger.debug(f"Request: {request}")
 
     username: str = request.username
-    amount: int = request.invoice_amount
+    # tokens_requested: int = request.tokens_requested
 
+    # This can be cleaned up... if poll_pending_invoices returns a pending invoice, return that.
+    # It would need to sort by the most recent invoice, though... or maybe not? becuase we fixed the bug?
     await poll_pending_invoices(username)
 
     pending_invoice = await get_single_pending_invoice(username)
@@ -81,3 +83,22 @@ async def deduct_balance(request: UsageDeducation):
     await tx_collection.insert_one(new_tx.dict())
 
     return {"username": username, "new_balance": new_balance}
+
+
+
+@router.get("/tx/")
+async def get_transactions(request: UsageRequest):
+    logger.debug(f">>> /tx/\tRequest: {request}")
+
+    username = request.username
+    thread_id = request.thread_id
+
+
+    tx_collection = db.db.get_collection("transactions")
+    transactions = await tx_collection.find({"username": username, "thread_id": thread_id}).to_list(length=None)
+    logger.debug(f"Transactions: {transactions}")
+
+    thread_usage = sum(t['tokens_used'] for t in transactions)
+
+    # return transactions
+    return int(thread_usage)

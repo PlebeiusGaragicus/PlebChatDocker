@@ -87,10 +87,11 @@ async def create_invoice(username: str, amount: int = 50):
         # save to the database
         invoices_collection = db.db.get_collection("invoices")
         await invoices_collection.insert_one(invoice)
-
-        logger.debug("AFTER WE ADDED TO THE DATABASE:")
-        logger.debug(invoice)
+        # NOTE: WATCH OUT! MongoDB adds a ObjectId '_id' here and it's not serializable to JSON!
+        # logger.debug("AFTER WE ADDED TO THE DATABASE:"
+        # logger.debug(invoice)
         invoice['_id'] = str(invoice['_id'])
+
 
         return invoice
 
@@ -112,9 +113,6 @@ async def get_pending_invoices(username: str):
 
 
 async def get_single_pending_invoice(username: str):
-    # invoices_collection = db.db.get_collection("invoices")
-    # latest = await invoices_collection.find_one({"username": username}, sort=[("issued_at", -1)])
-    # return latest
     invoices_collection = db.db.get_collection("invoices")
     latest_pending = await invoices_collection.find({"username": username, "status": "pending"}, sort=[("_id", -1)]).to_list(length=None)
     # latest = await invoices_collection.find_one({"username": username}, sort=[("_id", -1)])
@@ -142,7 +140,7 @@ async def credit_user_if_paid(invoice: dict, username: str) -> bool:
 
         NOTE: This also checks if the invoice has expired and updates the status accordingly
     """
-    amount_paid = await check_for_payment(invoice)
+    amount_paid = await check_invoice_for_payment_or_expiry(invoice)
 
     if amount_paid is None:
         logger.debug("This invoice has not been paid yet.")
@@ -191,12 +189,16 @@ async def credit_user_if_paid(invoice: dict, username: str) -> bool:
 
 
 
-async def check_for_payment(invoice: dict) -> Optional[int]:
+async def check_invoice_for_payment_or_expiry(invoice: dict) -> Optional[int]:
     """
         Calls the verify url and checks if the invoice has been paid.
+
         If it has, it returns the amount paid.
+
         If the invoice has expired, it returns -1
+
         If the invoice has not been paid yet, it returns None
+
         If there is an error, it returns None
     """
     logger.debug(f"Checking payment status for invoice: {invoice}")

@@ -38,7 +38,7 @@ class UsernameRequest(BaseModel):
 
 class InvoiceRequest(BaseModel):
     username: str
-    invoice_amount: int
+    # tokens_requested: int
 
 # class Transaction(BaseModel):
 #     username: str = Field(...)
@@ -65,6 +65,11 @@ class UsageDeducation(BaseModel):
     username: str
     thread_id: str
     tokens_used: int
+
+class UsageRequest(BaseModel):
+    username: str
+    thread_id: str
+
 
 class UsageRecord(BaseModel):
     username: str = Field(...)

@@ -27,12 +27,17 @@ class BotCommandHandler:
         # Generate usage text from available methods with a docstring
         command_list = [
             method for method in dir(self)
-            if callable(getattr(self, method)) and not method.startswith("__") and not method.startswith("_")
+            # if callable(getattr(self, method)) and not method.startswith("__") and not method.startswith("_")
+            if callable(getattr(self, method)) and not method.startswith("_")
         ]
+        # and (method.endswith("_") or request.body['user']['role'] == 'admin')
+        strip_admin_commands = lambda x: x if request.body['user']['role'] == 'admin' else not x.endswith("_")
+        command_list = list(filter(strip_admin_commands, command_list))
+
         return "\n".join(f"/{cmd} - {getattr(self, cmd).__doc__}" for cmd in command_list)
 
-    def whoami(self, request, *args):
-        """Get your username."""
+    def whoami_(self, request, *args):
+        """print user info from the request body."""
         if request.body['user']['role'] == 'admin' or os.getenv('DEBUG', False):
             user = request.body['user']
             return f"""```\n{json.dumps(user, indent=4)}\n```"""
@@ -40,34 +45,39 @@ class BotCommandHandler:
             username = request.body['user']['email']
             return f"Your username is: `{username}`"
 
-    def debug(self, request, *args):
-        """Get debug information."""
+    def debug_(self, request, *args):
+        """ADMIN ONLY: Get the request body and `DEBUG` environment variable."""
         if request.body['user']['role'] == 'admin' or os.getenv('DEBUG', False):
             return f"'DEBUG' environment variable: `{os.getenv('DEBUG')}`\n\n**body:**\n```json\n{json.dumps(request.body, indent=4)}\n```"
         else:
             return "Debug mode is disabled."
 
-    def draw(self, request, *args):
+    def draw_(self, request, *args):
+        """Draw the graph."""
         graph_ascii = self._get_graph().get_graph().draw_ascii()
         return f"```\n{graph_ascii}\n```"
 
     def cuss(self, request, *args):
-        """Let off some steam."""
+        """Let off some steam... 😡"""
         return "fuck\n\nteehee"
+
+    def version_(self, request, *args):
+        return self.VERSION
+        # raise NotImplementedError("Your bot must implement this function!")
 
 ####################################################################################
 #### YOUR CUSTOM GRAPH AGENTS MUST IMPLEMENT THE FOLLOWING METHODS #################
 ####################################################################################
-    def _get_graph(self):
+    def _get_computable_graph(self):
         raise NotImplementedError("Your bot must implement this function!")
 
-    def version(self, request, *args):
-        raise NotImplementedError("Your bot must implement this function!")
 
     def hi(self, request, *args):
+        # return self.HI_MESSAGE
         raise NotImplementedError("Your bot must implement this function!")
 
     def about(self, request, *args):
+        # return self.ABOUT_MESSAGE
         raise NotImplementedError("Your bot must implement this function!")
 
 
@@ -75,7 +85,7 @@ class BotCommandHandler:
 ######### BITCOIN LIGHTNING PAYMENT, INVOICING, AND USAGE METHODS ##################
 ####################################################################################
     def bal(self, request, *args):
-        """Check your token balance."""
+        """Check your token **balance**."""
 
         is_admin = request.body['user']['role'] == 'admin'
         user_to_check = args[0] if args else None
@@ -97,10 +107,12 @@ class BotCommandHandler:
 
                 if bal is None:
                     logger.warning(f"Error checking balance for {lud16}")
-                    return "Hi 👋🏻\nYou are an unregistered user.\nUse the `/pay` command to get started."
+                    # return "Hey 👋🏻\nYou, you must be new! 🤗.\nUse the **`/buy`** command to get started."
+                    yield "## Welcome to **`PlebChat`** 🥳\n  * 👋🏻 Hey - ***you must be new!***\n  * 💬 Learn more about me by typing **`/about`**\n  * 👇🏼 To get started, you'll need some tokens.\n" + self.buy(request)
+
                 else:
                     logger.info(f"{lud16} has a balance of {bal:.0f} tokens")
-                    return f"User: `{lud16}`\nYour account has a balance of: `{bal:.0f}` tokens"
+                    return f"User: `{lud16}`\nYou have: **`{bal:.0f}` generation tokens** left."
 
             except Exception as e:
                 logger.error(f"Error checking balance for {lud16}: {e}")
@@ -115,7 +127,7 @@ class BotCommandHandler:
 
 ####################################################################################
 
-    def pay(self, request, *args):
+    def buy(self, request, *args):
         """Request an invoice to top up your balance."""
         is_admin = request.body['user']['role'] == 'admin'
         if is_admin:
@@ -145,30 +157,46 @@ class BotCommandHandler:
             return "⚠️ No user LUD16 provided." #TODO: we need to log these errors.  This should never happen!!
         else:
             from .payment import get_invoice
-            invoice = get_invoice(lud16=lud16, sats=requested_invoice_amount)
+            invoice = get_invoice(lud16=lud16)
+
+### Invoice Request
             return f"""
-[Click to pay with Lightning ⚡️](lightning:{invoice['pr']})
+  * 👉🏼 Buy `100,000` **generation tokens** for only **{requested_invoice_amount} sats**! 🎉
 
-Invoice ID: `{invoice['_id']}`
-
-Amount: `{invoice['amount']}` sats
-
-```
-lightning:{invoice['pr']}
-```
-"""
+## ⚡️ ***[Tap to pay with Lightning](lightning:{invoice['pr']})*** ⚡️"""
+## [⚡️ Tap to pay with Lightning ⚡️](lightning:{invoice['pr']})"""
+# ```
+# Request: `{invoice['pr'][:5]}..{invoice['pr'][-5:]}`
+# Invoice: `{invoice['_id'][:5]}..{invoice['_id'][-5:]}`
+# ```
 
 
 ####################################################################################
 
     def usage(self, request, *args):
-        """Track your token usage for the last `n` days with "`/usage n`\""""
+        """Track your **token usage** for this conversation."""
 
         is_admin = request.body['user']['role'] == 'admin'
         if is_admin:
             return "You're a system administrator - I don't track your usage!\nYou can use me for free!"
 
-        return "This feature is not yet implemented."
+        lud16 = request.body['user']['email']
+        if not lud16:
+            return "⚠️ No user LUD16 provided."
+
+        thread_id = request.body['chat_id']
+        if not thread_id:
+            return "⚠️ No thread ID provided."
+
+        try:
+            from .payment import get_usage
+            usage = get_usage(lud16, thread_id)
+            return f"User: `{lud16}`\nThread: `{thread_id}`\nYou have used: **`{0 if not usage else usage}`** generation tokens in this conversation."
+        except Exception as e:
+            return f"Error checking usage: {e}"
+
+
+        # return "This feature is not yet implemented."
 
 
 
@@ -177,11 +205,11 @@ lightning:{invoice['pr']}
 ####################################################################################
 ####################################################################################
 
-    def read(self, request, *args):
-        # TODO: charge the user for this feature!!
-        """Scrape a URL and return the article."""
-        url = args[0] if args else "No URL provided"
-        return f"Returning article from {url}"
+    # def read(self, request, *args):
+    #     # TODO: charge the user for this feature!!
+    #     """Scrape a URL and return the article."""
+    #     url = args[0] if args else "No URL provided"
+    #     return f"Returning article from {url}"
 
 
 # def readability(request):
@@ -236,7 +264,7 @@ lightning:{invoice['pr']}
 # ############################################################################
     def url(self, request, *args):
         # TODO: charge the user for this feature!!
-        """Scrape the URL and reply with the content."""
+        """**Copy an article** or website by providing the URL.  `/url https://example.com/articles/298302`"""
         url = args[0] if args else "No URL provided"
         return f"Scraping content from {url}"
 
